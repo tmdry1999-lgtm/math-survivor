@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { getSave, saveStageResult } from '../src/systems/SaveManager.js';
+import { getSave, saveStageResult, purchaseCosmetic, equipCosmetic } from '../src/systems/SaveManager.js';
 
 describe('SaveManager', () => {
   beforeEach(() => {
@@ -44,5 +44,42 @@ describe('SaveManager', () => {
     saveStageResult({ unitId: 'nums_within_9', accuracy: 1, currencyEarned: 20 });
     const reloaded = getSave();
     expect(reloaded.currency).toBe(20);
+  });
+
+  it('purchaseCosmetic deducts currency, records ownership, and equips it', () => {
+    saveStageResult({ unitId: 'nums_within_9', accuracy: 1, currencyEarned: 20 });
+    const save = purchaseCosmetic('skin_coral', 20);
+    expect(save.currency).toBe(0);
+    expect(save.ownedCosmetics).toEqual(['skin_coral']);
+    expect(save.equippedCosmetics.playerColor).toBe('skin_coral');
+  });
+
+  it('purchaseCosmetic does nothing when currency is insufficient', () => {
+    const save = purchaseCosmetic('skin_coral', 20);
+    expect(save.currency).toBe(0);
+    expect(save.ownedCosmetics).toEqual([]);
+    expect(save.equippedCosmetics.playerColor).toBeUndefined();
+  });
+
+  it('purchaseCosmetic does not charge again for an already-owned cosmetic', () => {
+    saveStageResult({ unitId: 'nums_within_9', accuracy: 1, currencyEarned: 40 });
+    purchaseCosmetic('skin_coral', 20);
+    const save = purchaseCosmetic('skin_coral', 20);
+    expect(save.currency).toBe(20);
+    expect(save.ownedCosmetics).toEqual(['skin_coral']);
+  });
+
+  it('equipCosmetic switches the equipped cosmetic without charging currency', () => {
+    saveStageResult({ unitId: 'nums_within_9', accuracy: 1, currencyEarned: 60 });
+    purchaseCosmetic('skin_coral', 20);
+    purchaseCosmetic('skin_violet', 40);
+    const save = equipCosmetic('skin_coral');
+    expect(save.currency).toBe(0);
+    expect(save.equippedCosmetics.playerColor).toBe('skin_coral');
+  });
+
+  it('equipCosmetic refuses to equip a cosmetic that was never purchased', () => {
+    const save = equipCosmetic('skin_violet');
+    expect(save.equippedCosmetics.playerColor).toBeUndefined();
   });
 });

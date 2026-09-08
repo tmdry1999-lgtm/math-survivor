@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
 import { generateCountObjectsQuestion } from '../systems/QuestionEngine.js';
+import { getSave } from '../systems/SaveManager.js';
+import { getCosmeticColor, DEFAULT_COSMETIC_ID } from '../data/cosmetics.js';
 
 // STAGE_DURATION_MS, the spawn interval(1200ms), and LEVEL_XP_THRESHOLDS are tuned together —
 // raising the stage duration without extending this list means questions stop appearing
@@ -27,6 +29,7 @@ export class StageScene extends Phaser.Scene {
   }
 
   create() {
+    this.applyEquippedPlayerColor();
     this.player = this.physics.add.sprite(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 'player');
     this.player.setCollideWorldBounds(true);
 
@@ -89,6 +92,21 @@ export class StageScene extends Phaser.Scene {
   updateHud() {
     const secondsLeft = Math.max(0, Math.ceil(this.remainingMs / 1000));
     this.hudText.setText(`남은 시간 ${secondsLeft}초  레벨 ${this.level}`);
+  }
+
+  applyEquippedPlayerColor() {
+    const save = getSave();
+    const equippedId = save.equippedCosmetics.playerColor ?? DEFAULT_COSMETIC_ID;
+    const color = getCosmeticColor(equippedId);
+
+    if (this.textures.exists('player')) {
+      this.textures.remove('player');
+    }
+    const graphics = this.add.graphics();
+    graphics.fillStyle(color, 1);
+    graphics.fillCircle(16, 16, 16);
+    graphics.generateTexture('player', 32, 32);
+    graphics.destroy();
   }
 
   spawnEnemy() {

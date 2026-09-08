@@ -39,3 +39,30 @@ export function saveStageResult({ unitId, accuracy, currencyEarned }) {
   writeSave(save);
   return save;
 }
+
+// 이미 보유했거나 재화가 부족하면 아무 변화 없이 현재 저장 데이터를 그대로 반환한다.
+export function purchaseCosmetic(cosmeticId, cost) {
+  const save = getSave();
+  if (save.ownedCosmetics.includes(cosmeticId)) {
+    return save;
+  }
+  if (save.currency < cost) {
+    return save;
+  }
+  save.currency -= cost;
+  save.ownedCosmetics.push(cosmeticId);
+  save.equippedCosmetics.playerColor = cosmeticId;
+  writeSave(save);
+  return save;
+}
+
+// 보유하지 않은 코스메틱은 착용할 수 없다.
+export function equipCosmetic(cosmeticId) {
+  const save = getSave();
+  if (!save.ownedCosmetics.includes(cosmeticId)) {
+    return save;
+  }
+  save.equippedCosmetics.playerColor = cosmeticId;
+  writeSave(save);
+  return save;
+}
