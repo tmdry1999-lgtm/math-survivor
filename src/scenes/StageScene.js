@@ -120,6 +120,7 @@ export class StageScene extends Phaser.Scene {
   }
 
   onQuestionAnswered({ isCorrect }) {
+    if (!this.isPaused) return;
     this.totalQuestions += 1;
     if (isCorrect) {
       this.correctAnswers += 1;
