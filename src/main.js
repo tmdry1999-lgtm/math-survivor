@@ -11,6 +11,7 @@ const config = {
   height: 600,
   parent: 'app',
   backgroundColor: '#2b2b40',
+  pixelArt: true,
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,

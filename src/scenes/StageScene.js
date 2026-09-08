@@ -10,6 +10,8 @@ const LEVEL_XP_THRESHOLDS = [5, 10, 16, 23, 31, 40];
 const STAGE_DURATION_MS = 60000;
 const WORLD_WIDTH = 800;
 const WORLD_HEIGHT = 600;
+// player/enemy sprites are 16x16 source tiles; scale them up so they read clearly on the 800x600 world.
+const SPRITE_SCALE = 2.5;
 
 export class StageScene extends Phaser.Scene {
   constructor() {
@@ -29,9 +31,10 @@ export class StageScene extends Phaser.Scene {
   }
 
   create() {
-    this.applyEquippedPlayerColor();
     this.player = this.physics.add.sprite(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 'player');
+    this.player.setScale(SPRITE_SCALE);
     this.player.setCollideWorldBounds(true);
+    this.applyEquippedPlayerColor();
 
     this.enemies = this.physics.add.group();
     this.cursors = this.input.keyboard.createCursorKeys();
@@ -97,16 +100,7 @@ export class StageScene extends Phaser.Scene {
   applyEquippedPlayerColor() {
     const save = getSave();
     const equippedId = save.equippedCosmetics.playerColor ?? DEFAULT_COSMETIC_ID;
-    const color = getCosmeticColor(equippedId);
-
-    if (this.textures.exists('player')) {
-      this.textures.remove('player');
-    }
-    const graphics = this.add.graphics();
-    graphics.fillStyle(color, 1);
-    graphics.fillCircle(16, 16, 16);
-    graphics.generateTexture('player', 32, 32);
-    graphics.destroy();
+    this.player.setTint(getCosmeticColor(equippedId));
   }
 
   spawnEnemy() {
@@ -117,7 +111,7 @@ export class StageScene extends Phaser.Scene {
       { x: WORLD_WIDTH + 20, y: Phaser.Math.Between(0, WORLD_HEIGHT) },
     ];
     const { x, y } = positions[Phaser.Math.Between(0, 3)];
-    this.enemies.create(x, y, 'enemy');
+    this.enemies.create(x, y, 'enemy').setScale(SPRITE_SCALE);
   }
 
   performAutoAttack() {

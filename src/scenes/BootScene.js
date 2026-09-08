@@ -1,13 +1,18 @@
 import Phaser from 'phaser';
+import playerUrl from '../assets/sprites/player.png';
+import enemyUrl from '../assets/sprites/enemy.png';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
     super('Boot');
   }
 
+  preload() {
+    this.load.image('player', playerUrl);
+    this.load.image('enemy', enemyUrl);
+  }
+
   create() {
-    this.createCircleTexture('player', 16, 0x4fd1c5);
-    this.createCircleTexture('enemy', 14, 0xf56565);
     // Reserved for a future pickup-orb mechanic / real pixel-art asset swap; unused for now.
     this.createCircleTexture('xpOrb', 6, 0xf6e05e);
     this.scene.start('Hub');
