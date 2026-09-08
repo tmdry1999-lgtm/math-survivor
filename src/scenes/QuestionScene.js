@@ -33,7 +33,7 @@ export class QuestionScene extends Phaser.Scene {
         .setInteractive({ useHandCursor: true });
 
       this.add
-        .text(x, height / 2 + 40, String(choice.value), { fontSize: '28px' })
+        .text(x, height / 2 + 40, String(choice.value), { fontSize: '28px', fontFamily: 'sans-serif' })
         .setOrigin(0.5);
 
       rectangle.on('pointerdown', () => {

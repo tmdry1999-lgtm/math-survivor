@@ -9,7 +9,7 @@ export class BootScene extends Phaser.Scene {
     this.createCircleTexture('player', 16, 0x4fd1c5);
     this.createCircleTexture('enemy', 14, 0xf56565);
     this.createCircleTexture('xpOrb', 6, 0xf6e05e);
-    this.scene.start('Stage', { unitId: 'nums_within_9' });
+    this.scene.start('Hub');
   }
 
   createCircleTexture(key, radius, color) {

@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { BootScene } from './scenes/BootScene.js';
+import { HubScene } from './scenes/HubScene.js';
 import { StageScene } from './scenes/StageScene.js';
 import { QuestionScene } from './scenes/QuestionScene.js';
 import { ResultScene } from './scenes/ResultScene.js';
@@ -10,11 +11,15 @@ const config = {
   height: 600,
   parent: 'app',
   backgroundColor: '#2b2b40',
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+  },
   physics: {
     default: 'arcade',
     arcade: { debug: false },
   },
-  scene: [BootScene, StageScene, QuestionScene, ResultScene],
+  scene: [BootScene, HubScene, StageScene, QuestionScene, ResultScene],
 };
 
 // eslint-disable-next-line no-new

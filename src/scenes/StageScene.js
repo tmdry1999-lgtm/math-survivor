@@ -52,7 +52,9 @@ export class StageScene extends Phaser.Scene {
       this.events.off('question-answered', this.onQuestionAnswered, this);
     });
 
-    this.hudText = this.add.text(12, 12, '', { fontSize: '16px', color: '#ffffff' }).setDepth(10);
+    this.hudText = this.add
+      .text(12, 12, '', { fontSize: '16px', color: '#ffffff', fontFamily: 'sans-serif' })
+      .setDepth(10);
     this.updateHud();
   }
 
