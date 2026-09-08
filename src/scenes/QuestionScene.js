@@ -55,7 +55,14 @@ export class QuestionScene extends Phaser.Scene {
       }
     });
 
-    this.time.delayedCall(600, () => {
+    const { width, height } = this.scale;
+    const message = selected.isCorrect ? '정답! 강한 업그레이드 ⚔️' : '괜찮아요! 작은 업그레이드 💪';
+    const color = selected.isCorrect ? '#48bb78' : '#f6ad55';
+    this.add
+      .text(width / 2, height / 2 + 95, message, { fontSize: '18px', color, fontFamily: 'sans-serif' })
+      .setOrigin(0.5);
+
+    this.time.delayedCall(700, () => {
       this.scene.get('Stage').events.emit('question-answered', {
         isCorrect: selected.isCorrect,
       });

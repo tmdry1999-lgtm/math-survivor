@@ -126,10 +126,32 @@ export class StageScene extends Phaser.Scene {
       }
     });
     if (nearestEnemy) {
-      this.flashHit(nearestEnemy.x, nearestEnemy.y);
-      nearestEnemy.destroy();
-      this.gainXp(1);
+      this.fireProjectile(nearestEnemy);
     }
+  }
+
+  fireProjectile(targetEnemy) {
+    const projectile = this.add.circle(this.player.x, this.player.y, 5, 0xfff176, 1);
+    const targetX = targetEnemy.x;
+    const targetY = targetEnemy.y;
+    const travelDistance = Phaser.Math.Distance.Between(this.player.x, this.player.y, targetX, targetY);
+    const duration = Phaser.Math.Clamp(travelDistance * 1.2, 60, 180);
+
+    this.tweens.add({
+      targets: projectile,
+      x: targetX,
+      y: targetY,
+      duration,
+      onComplete: () => {
+        projectile.destroy();
+        // targetEnemy may already be gone (e.g. killed by contact) by the time the projectile lands.
+        if (targetEnemy.active) {
+          this.flashHit(targetEnemy.x, targetEnemy.y);
+          targetEnemy.destroy();
+          this.gainXp(1);
+        }
+      },
+    });
   }
 
   flashHit(x, y) {
