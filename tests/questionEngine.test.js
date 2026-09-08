@@ -37,4 +37,15 @@ describe('generateCountObjectsQuestion', () => {
       });
     }
   });
+
+  it('wrong-answer distractors are within +-2 of the correct count (plausible near-misses)', () => {
+    for (let i = 0; i < 50; i += 1) {
+      const question = generateCountObjectsQuestion();
+      question.choices
+        .filter((choice) => !choice.isCorrect)
+        .forEach((choice) => {
+          expect(Math.abs(choice.value - question.promptCount)).toBeLessThanOrEqual(2);
+        });
+    }
+  });
 });

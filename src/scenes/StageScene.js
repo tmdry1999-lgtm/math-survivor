@@ -1,6 +1,9 @@
 import Phaser from 'phaser';
 import { generateCountObjectsQuestion } from '../systems/QuestionEngine.js';
 
+// STAGE_DURATION_MS, the spawn interval(1200ms), and LEVEL_XP_THRESHOLDS are tuned together —
+// raising the stage duration without extending this list means questions stop appearing
+// long before the stage ends.
 const LEVEL_XP_THRESHOLDS = [5, 10, 16, 23, 31, 40];
 const STAGE_DURATION_MS = 60000;
 const WORLD_WIDTH = 800;
@@ -167,6 +170,7 @@ export class StageScene extends Phaser.Scene {
 
   handlePlayerHit(player, enemy) {
     enemy.destroy();
+    this.gainXp(1);
   }
 
   finishStage() {

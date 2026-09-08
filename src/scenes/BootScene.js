@@ -8,6 +8,7 @@ export class BootScene extends Phaser.Scene {
   create() {
     this.createCircleTexture('player', 16, 0x4fd1c5);
     this.createCircleTexture('enemy', 14, 0xf56565);
+    // Reserved for a future pickup-orb mechanic / real pixel-art asset swap; unused for now.
     this.createCircleTexture('xpOrb', 6, 0xf6e05e);
     this.scene.start('Hub');
   }

@@ -11,6 +11,15 @@ describe('SaveManager', () => {
     expect(save.currency).toBe(0);
     expect(save.unlockedStages).toEqual(['nums_within_9']);
     expect(save.stageProgress).toEqual({});
+    expect(save.ownedCosmetics).toEqual([]);
+    expect(save.equippedCosmetics).toEqual({});
+  });
+
+  it('falls back to a fresh save when localStorage holds corrupted JSON', () => {
+    localStorage.setItem('mathSurvivorSave', '{not valid json');
+    const save = getSave();
+    expect(save.currency).toBe(0);
+    expect(save.unlockedStages).toEqual(['nums_within_9']);
   });
 
   it('adds currency and records stage progress after a clear', () => {
