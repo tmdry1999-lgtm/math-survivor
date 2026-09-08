@@ -11,15 +11,20 @@ function defaultSave() {
 }
 
 export function getSave() {
-  const raw = localStorage.getItem(SAVE_KEY);
-  if (!raw) {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    return raw ? JSON.parse(raw) : defaultSave();
+  } catch {
     return defaultSave();
   }
-  return JSON.parse(raw);
 }
 
 function writeSave(save) {
-  localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+  } catch {
+    // 저장에 실패해도 게임 진행에는 지장이 없도록 조용히 무시한다
+  }
 }
 
 export function saveStageResult({ unitId, accuracy, currencyEarned }) {

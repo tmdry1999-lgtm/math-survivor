@@ -7,6 +7,7 @@ export class QuestionScene extends Phaser.Scene {
 
   init(data) {
     this.question = data.question;
+    this.answered = false;
   }
 
   create() {
@@ -24,9 +25,9 @@ export class QuestionScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const startX = width / 2 - 120;
-    this.question.choices.forEach((choice, index) => {
+    this.buttons = this.question.choices.map((choice, index) => {
       const x = startX + index * 120;
-      const button = this.add
+      const rectangle = this.add
         .rectangle(x, height / 2 + 40, 90, 70, 0x2b2b40)
         .setStrokeStyle(2, 0xffffff)
         .setInteractive({ useHandCursor: true });
@@ -35,10 +36,28 @@ export class QuestionScene extends Phaser.Scene {
         .text(x, height / 2 + 40, String(choice.value), { fontSize: '28px' })
         .setOrigin(0.5);
 
-      button.on('pointerdown', () => {
-        this.scene.get('Stage').events.emit('question-answered', {
-          isCorrect: choice.isCorrect,
-        });
+      rectangle.on('pointerdown', () => {
+        if (this.answered) return;
+        this.answered = true;
+        this.showResult(choice);
+      });
+
+      return { rectangle, choice };
+    });
+  }
+
+  showResult(selected) {
+    this.buttons.forEach(({ rectangle, choice }) => {
+      if (choice.isCorrect) {
+        rectangle.setStrokeStyle(4, 0x48bb78);
+      } else if (choice === selected) {
+        rectangle.setStrokeStyle(4, 0xf56565);
+      }
+    });
+
+    this.time.delayedCall(600, () => {
+      this.scene.get('Stage').events.emit('question-answered', {
+        isCorrect: selected.isCorrect,
       });
     });
   }

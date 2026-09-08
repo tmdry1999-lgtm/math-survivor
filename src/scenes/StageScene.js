@@ -48,6 +48,12 @@ export class StageScene extends Phaser.Scene {
     });
 
     this.events.on('question-answered', this.onQuestionAnswered, this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.events.off('question-answered', this.onQuestionAnswered, this);
+    });
+
+    this.hudText = this.add.text(12, 12, '', { fontSize: '16px', color: '#ffffff' }).setDepth(10);
+    this.updateHud();
   }
 
   update(time, delta) {
@@ -58,6 +64,8 @@ export class StageScene extends Phaser.Scene {
       this.finishStage();
       return;
     }
+
+    this.updateHud();
 
     const speed = 160;
     const velocity = new Phaser.Math.Vector2(0, 0);
@@ -71,6 +79,11 @@ export class StageScene extends Phaser.Scene {
     this.enemies.getChildren().forEach((enemy) => {
       this.physics.moveToObject(enemy, this.player, 70);
     });
+  }
+
+  updateHud() {
+    const secondsLeft = Math.max(0, Math.ceil(this.remainingMs / 1000));
+    this.hudText.setText(`남은 시간 ${secondsLeft}초  레벨 ${this.level}`);
   }
 
   spawnEnemy() {
@@ -96,9 +109,21 @@ export class StageScene extends Phaser.Scene {
       }
     });
     if (nearestEnemy) {
+      this.flashHit(nearestEnemy.x, nearestEnemy.y);
       nearestEnemy.destroy();
       this.gainXp(1);
     }
+  }
+
+  flashHit(x, y) {
+    const flash = this.add.circle(x, y, 18, 0xffffff, 0.9);
+    this.tweens.add({
+      targets: flash,
+      alpha: 0,
+      scale: 1.6,
+      duration: 200,
+      onComplete: () => flash.destroy(),
+    });
   }
 
   gainXp(amount) {
@@ -145,7 +170,7 @@ export class StageScene extends Phaser.Scene {
   finishStage() {
     this.spawnTimer.remove();
     this.attackTimer.remove();
-    const accuracy = this.totalQuestions === 0 ? 1 : this.correctAnswers / this.totalQuestions;
+    const accuracy = this.totalQuestions === 0 ? 0 : this.correctAnswers / this.totalQuestions;
     this.scene.start('Result', {
       unitId: this.unitId,
       accuracy,

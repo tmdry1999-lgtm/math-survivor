@@ -12,14 +12,29 @@ export class ResultScene extends Phaser.Scene {
 
   create() {
     const { width, height } = this.scale;
-    const accuracyPercent = Math.round(this.resultData.accuracy * 100);
-    const currencyEarned = Math.round(this.resultData.accuracy * 20);
+    const { accuracy, totalQuestions, unitId } = this.resultData;
 
-    saveStageResult({
-      unitId: this.resultData.unitId,
-      accuracy: this.resultData.accuracy,
-      currencyEarned,
-    });
+    if (totalQuestions === 0) {
+      this.add
+        .text(width / 2, height / 2 - 40, '문제를 만나지 못했어요!', { fontSize: '28px', color: '#f6e05e' })
+        .setOrigin(0.5);
+      this.add
+        .text(width / 2, height / 2, '적을 더 많이 처치해보세요', { fontSize: '20px', color: '#ffffff' })
+        .setOrigin(0.5);
+
+      const earlyRestartButton = this.add
+        .text(width / 2, height / 2 + 60, '다시 하기', { fontSize: '20px', color: '#4fd1c5' })
+        .setOrigin(0.5)
+        .setInteractive({ useHandCursor: true });
+
+      earlyRestartButton.on('pointerdown', () => {
+        this.scene.start('Stage', { unitId });
+      });
+      return;
+    }
+
+    const accuracyPercent = Math.round(accuracy * 100);
+    const currencyEarned = Math.round(accuracy * 20);
 
     this.add
       .text(width / 2, height / 2 - 60, '스테이지 클리어!', { fontSize: '32px', color: '#f6e05e' })
@@ -39,7 +54,9 @@ export class ResultScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
 
     restartButton.on('pointerdown', () => {
-      this.scene.start('Stage', { unitId: this.resultData.unitId });
+      this.scene.start('Stage', { unitId });
     });
+
+    saveStageResult({ unitId, accuracy, currencyEarned });
   }
 }
