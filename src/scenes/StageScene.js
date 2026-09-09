@@ -106,6 +106,62 @@ export class StageScene extends Phaser.Scene {
       .setDepth(10)
       .setScrollFactor(0);
     this.updateHud();
+
+    this.buildVirtualJoystick();
+  }
+
+  buildVirtualJoystick() {
+    const baseX = 100;
+    const baseY = this.scale.height - 100;
+    const baseRadius = 50;
+
+    this.joystickVector = new Phaser.Math.Vector2(0, 0);
+    this.joystickPointerId = null;
+    this.joystickBaseX = baseX;
+    this.joystickBaseY = baseY;
+    this.joystickBaseRadius = baseRadius;
+
+    this.joystickBase = this.add
+      .circle(baseX, baseY, baseRadius, 0xffffff, 0.15)
+      .setStrokeStyle(2, 0xffffff, 0.4)
+      .setScrollFactor(0)
+      .setDepth(20)
+      .setInteractive();
+    this.joystickKnob = this.add
+      .circle(baseX, baseY, 24, 0xffffff, 0.35)
+      .setScrollFactor(0)
+      .setDepth(21);
+
+    this.joystickBase.on('pointerdown', (pointer) => {
+      this.joystickPointerId = pointer.id;
+      this.updateJoystick(pointer);
+    });
+
+    this.input.on('pointermove', (pointer) => {
+      if (pointer.id === this.joystickPointerId) {
+        this.updateJoystick(pointer);
+      }
+    });
+
+    this.input.on('pointerup', (pointer) => {
+      if (pointer.id === this.joystickPointerId) {
+        this.joystickPointerId = null;
+        this.joystickVector.set(0, 0);
+        this.joystickKnob.setPosition(this.joystickBaseX, this.joystickBaseY);
+      }
+    });
+  }
+
+  updateJoystick(pointer) {
+    const dx = pointer.x - this.joystickBaseX;
+    const dy = pointer.y - this.joystickBaseY;
+    const distance = Math.min(this.joystickBaseRadius, Math.hypot(dx, dy));
+    const angle = Math.atan2(dy, dx);
+    this.joystickKnob.setPosition(
+      this.joystickBaseX + Math.cos(angle) * distance,
+      this.joystickBaseY + Math.sin(angle) * distance,
+    );
+    this.joystickVector.set(Math.cos(angle), Math.sin(angle)).scale(distance / this.joystickBaseRadius);
   }
 
   buildBackground() {
@@ -146,7 +202,15 @@ export class StageScene extends Phaser.Scene {
     if (this.cursors.right.isDown || this.wasd.D.isDown) velocity.x += 1;
     if (this.cursors.up.isDown || this.wasd.W.isDown) velocity.y -= 1;
     if (this.cursors.down.isDown || this.wasd.S.isDown) velocity.y += 1;
-    velocity.normalize().scale(speed);
+
+    // Keyboard wins if both are used at once; otherwise fall back to the joystick's
+    // analog vector so a light touch still moves slower than a full push to the edge.
+    if (velocity.length() === 0 && this.joystickVector.length() > 0) {
+      velocity.copy(this.joystickVector);
+    } else if (velocity.length() > 1) {
+      velocity.normalize();
+    }
+    velocity.scale(speed);
     this.player.setVelocity(velocity.x, velocity.y);
 
     if (velocity.x !== 0) {
