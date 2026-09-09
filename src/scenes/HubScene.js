@@ -9,6 +9,7 @@ const TEXT_FONT = 'sans-serif';
 // 다시 순차 잠금으로 되돌리려면 이 값을 false로 바꾸면 된다
 // (SaveManager는 여전히 unlockedStages를 기록하므로 언제든 복원 가능).
 const ALL_STAGES_UNLOCKED = true;
+const STAGE_GRID_COLS = 3;
 
 export class HubScene extends Phaser.Scene {
   constructor() {
@@ -21,7 +22,11 @@ export class HubScene extends Phaser.Scene {
     const save = getSave();
 
     this.add.rectangle(width / 2, height / 2, width, height, 0x111122);
+    this.add.tileSprite(width / 2, height / 2, width, height, 'floor').setAlpha(0.12);
+    this.buildRoomDecor(width, height);
 
+    this.add.image(width / 2 - 110, 38, 'decorTorch').setScale(1.6).setAlpha(0.9);
+    this.add.image(width / 2 + 110, 38, 'decorTorch').setScale(1.6).setAlpha(0.9);
     this.add
       .text(width / 2, 40, '나의 작은 방', { fontSize: '26px', color: '#f6e05e', fontFamily: TEXT_FONT })
       .setOrigin(0.5);
@@ -34,8 +39,13 @@ export class HubScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.buildMuteButton(50, 32);
-    this.buildStageList(width, 155, save);
-    this.buildCosmeticShop(width / 2, 420, save);
+    this.buildStageList(width, 130, save);
+    this.buildCosmeticShop(width / 2, 435, save);
+  }
+
+  buildRoomDecor(width, height) {
+    this.add.image(50, height - 50, 'decorChest').setScale(2.2).setAlpha(0.35).setDepth(-1);
+    this.add.image(width - 50, height - 50, 'decorDresser').setScale(2.2).setAlpha(0.35).setDepth(-1);
   }
 
   buildMuteButton(x, y) {
@@ -62,24 +72,30 @@ export class HubScene extends Phaser.Scene {
   }
 
   buildStageList(width, topY, save) {
-    const cardWidth = 220;
-    const cardHeight = 170;
-    const gap = 20;
-    const totalWidth = UNIT_SEQUENCE.length * cardWidth + (UNIT_SEQUENCE.length - 1) * gap;
-    const startX = width / 2 - totalWidth / 2 + cardWidth / 2;
+    const cardWidth = 210;
+    const cardHeight = 140;
+    const colGap = 16;
+    const rowGap = 16;
 
     UNIT_SEQUENCE.forEach((unitId, index) => {
-      const x = startX + index * (cardWidth + gap);
+      const row = Math.floor(index / STAGE_GRID_COLS);
+      const col = index % STAGE_GRID_COLS;
+      const itemsInRow = Math.min(STAGE_GRID_COLS, UNIT_SEQUENCE.length - row * STAGE_GRID_COLS);
+      const rowWidth = itemsInRow * cardWidth + (itemsInRow - 1) * colGap;
+      const rowStartX = width / 2 - rowWidth / 2 + cardWidth / 2;
+      const x = rowStartX + col * (cardWidth + colGap);
+      const y = topY + row * (cardHeight + rowGap);
+
       const unlocked = ALL_STAGES_UNLOCKED || save.unlockedStages.includes(unitId);
       const progress = save.stageProgress[unitId];
 
       this.add
-        .rectangle(x, topY, cardWidth, cardHeight, unlocked ? 0x1a1a2e : 0x14141f)
+        .rectangle(x, y, cardWidth, cardHeight, unlocked ? 0x1a1a2e : 0x14141f)
         .setStrokeStyle(3, unlocked ? 0x4fd1c5 : 0x2a2a38);
 
       this.add
-        .text(x, topY - 55, UNIT_LABELS[unitId] ?? unitId, {
-          fontSize: '16px',
+        .text(x, y - 48, UNIT_LABELS[unitId] ?? unitId, {
+          fontSize: '15px',
           color: unlocked ? '#ffffff' : '#555566',
           fontFamily: TEXT_FONT,
           align: 'center',
@@ -93,8 +109,8 @@ export class HubScene extends Phaser.Scene {
           ? `최고 정답률 ${Math.round(progress.bestAccuracy * 100)}%`
           : '아직 도전하지 않았어요';
       this.add
-        .text(x, topY - 15, statusText, {
-          fontSize: '12px',
+        .text(x, y - 18, statusText, {
+          fontSize: '11px',
           color: unlocked ? '#a0aec0' : '#444455',
           fontFamily: TEXT_FONT,
         })
@@ -105,11 +121,11 @@ export class HubScene extends Phaser.Scene {
       }
 
       const startButton = this.add
-        .rectangle(x, topY + 55, cardWidth - 30, 44, 0x2b2b40)
+        .rectangle(x, y + 42, cardWidth - 30, 36, 0x2b2b40)
         .setStrokeStyle(2, 0xf6e05e)
         .setInteractive({ useHandCursor: true });
       this.add
-        .text(x, topY + 55, '도전하기', { fontSize: '16px', color: '#f6e05e', fontFamily: TEXT_FONT })
+        .text(x, y + 42, '도전하기', { fontSize: '15px', color: '#f6e05e', fontFamily: TEXT_FONT })
         .setOrigin(0.5);
 
       startButton.on('pointerover', () => startButton.setScale(1.05));

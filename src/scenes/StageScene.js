@@ -65,6 +65,14 @@ export class StageScene extends Phaser.Scene {
     this.player.setScale(SPRITE_SCALE);
     this.player.setCollideWorldBounds(true);
     this.applyEquippedPlayerColor();
+    this.tweens.add({
+      targets: this.player,
+      scaleY: SPRITE_SCALE * 0.94,
+      duration: 500,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.InOut',
+    });
 
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
 
@@ -250,6 +258,17 @@ export class StageScene extends Phaser.Scene {
       scale: SPRITE_SCALE,
       duration: 200,
       ease: 'Back.Out',
+      onComplete: () => {
+        if (!enemy.active) return;
+        this.tweens.add({
+          targets: enemy,
+          scaleY: SPRITE_SCALE * 0.92,
+          duration: 450,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.InOut',
+        });
+      },
     });
   }
 

@@ -7,6 +7,9 @@ import floorUrl from '../assets/sprites/floor.png';
 import wallUrl from '../assets/sprites/wall.png';
 import decorCoinUrl from '../assets/sprites/decor-coin.png';
 import decorRubbleUrl from '../assets/sprites/decor-rubble.png';
+import decorTorchUrl from '../assets/sprites/decor-torch.png';
+import decorChestUrl from '../assets/sprites/decor-chest.png';
+import decorDresserUrl from '../assets/sprites/decor-dresser.png';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -22,6 +25,9 @@ export class BootScene extends Phaser.Scene {
     this.load.image('wall', wallUrl);
     this.load.image('decorCoin', decorCoinUrl);
     this.load.image('decorRubble', decorRubbleUrl);
+    this.load.image('decorTorch', decorTorchUrl);
+    this.load.image('decorChest', decorChestUrl);
+    this.load.image('decorDresser', decorDresserUrl);
   }
 
   create() {
