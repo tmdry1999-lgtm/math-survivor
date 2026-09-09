@@ -55,6 +55,24 @@ describe('generateCountObjectsQuestion', () => {
         });
     }
   });
+
+  it('difficulty 0 keeps promptCount to 5 or below (easy)', () => {
+    for (let i = 0; i < 50; i += 1) {
+      const question = generateCountObjectsQuestion(0);
+      expect(question.promptCount).toBeLessThanOrEqual(5);
+    }
+  });
+
+  it('difficulty 2 tightens distractors to +-1 (hard)', () => {
+    for (let i = 0; i < 50; i += 1) {
+      const question = generateCountObjectsQuestion(2);
+      question.choices
+        .filter((choice) => !choice.isCorrect)
+        .forEach((choice) => {
+          expect(Math.abs(choice.value - question.promptCount)).toBeLessThanOrEqual(1);
+        });
+    }
+  });
 });
 
 describe('generateShapeMatchQuestion', () => {
@@ -106,6 +124,15 @@ describe('generateAddSubQuestion', () => {
       expect(correct.value).toBeLessThanOrEqual(9);
     }
   });
+
+  it('difficulty 0 only produces addition with a sum of 5 or below (easy)', () => {
+    for (let i = 0; i < 50; i += 1) {
+      const question = generateAddSubQuestion(0);
+      expect(question.promptText).toContain('+');
+      const correct = question.choices.find((choice) => choice.isCorrect);
+      expect(correct.value).toBeLessThanOrEqual(5);
+    }
+  });
 });
 
 describe('generateComparisonQuestion', () => {
@@ -130,6 +157,20 @@ describe('generateComparisonQuestion', () => {
       expect(question.leftCount).not.toBe(question.rightCount);
     }
   });
+
+  it('difficulty 0 forces a gap of at least 3 (easy, obviously different)', () => {
+    for (let i = 0; i < 50; i += 1) {
+      const question = generateComparisonQuestion(0);
+      expect(Math.abs(question.leftCount - question.rightCount)).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it('difficulty 2 forces a gap of exactly 1 (hard, must look closely)', () => {
+    for (let i = 0; i < 50; i += 1) {
+      const question = generateComparisonQuestion(2);
+      expect(Math.abs(question.leftCount - question.rightCount)).toBe(1);
+    }
+  });
 });
 
 describe('generateNumberSequenceQuestion', () => {
@@ -152,6 +193,13 @@ describe('generateNumberSequenceQuestion', () => {
       const question = generateNumberSequenceQuestion();
       expect(question.sequenceStart).toBeGreaterThanOrEqual(1);
       expect(question.sequenceStart + 2).toBeLessThanOrEqual(50);
+    }
+  });
+
+  it('difficulty 0 keeps sequenceStart to 15 or below (easy, smaller numbers)', () => {
+    for (let i = 0; i < 50; i += 1) {
+      const question = generateNumberSequenceQuestion(0);
+      expect(question.sequenceStart).toBeLessThanOrEqual(15);
     }
   });
 });
@@ -185,5 +233,12 @@ describe('generateQuestionForUnit', () => {
   it('falls back to count_objects for an unknown unit id', () => {
     const question = generateQuestionForUnit('does_not_exist');
     expect(question.type).toBe('count_objects');
+  });
+
+  it('forwards the difficulty argument to the underlying generator', () => {
+    for (let i = 0; i < 50; i += 1) {
+      const question = generateQuestionForUnit('nums_within_9', 0);
+      expect(question.promptCount).toBeLessThanOrEqual(5);
+    }
   });
 });
