@@ -9,8 +9,9 @@ import { playAttack, playHit, playLevelUp } from '../systems/SfxPlayer.js';
 // long before the stage ends.
 const LEVEL_XP_THRESHOLDS = [5, 10, 16, 23, 31, 40];
 const STAGE_DURATION_MS = 60000;
-const WORLD_WIDTH = 800;
-const WORLD_HEIGHT = 600;
+// The arena is larger than the 800x600 viewport; the camera follows the player around it.
+const WORLD_WIDTH = 1600;
+const WORLD_HEIGHT = 1200;
 // player/enemy sprites are 16x16 source tiles; scale them up so they read clearly on the 800x600 world.
 const SPRITE_SCALE = 2.5;
 const WALL_THICKNESS = 32;
@@ -37,10 +38,15 @@ export class StageScene extends Phaser.Scene {
     this.cameras.main.fadeIn(250, 17, 17, 34);
     this.buildBackground();
 
+    this.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+    this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+
     this.player = this.physics.add.sprite(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 'player');
     this.player.setScale(SPRITE_SCALE);
     this.player.setCollideWorldBounds(true);
     this.applyEquippedPlayerColor();
+
+    this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
 
     this.enemies = this.physics.add.group();
     this.cursors = this.input.keyboard.createCursorKeys();
@@ -69,7 +75,8 @@ export class StageScene extends Phaser.Scene {
 
     this.hudText = this.add
       .text(12, 12, '', { fontSize: '16px', color: '#ffffff', fontFamily: 'sans-serif' })
-      .setDepth(10);
+      .setDepth(10)
+      .setScrollFactor(0);
     this.updateHud();
   }
 
@@ -77,7 +84,7 @@ export class StageScene extends Phaser.Scene {
     this.add.tileSprite(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT, 'floor').setDepth(-10);
 
     const decorKeys = ['decorCoin', 'decorRubble'];
-    for (let i = 0; i < 6; i += 1) {
+    for (let i = 0; i < 24; i += 1) {
       const key = decorKeys[Phaser.Math.Between(0, decorKeys.length - 1)];
       const x = Phaser.Math.Between(WALL_THICKNESS + 20, WORLD_WIDTH - WALL_THICKNESS - 20);
       const y = Phaser.Math.Between(WALL_THICKNESS + 20, WORLD_HEIGHT - WALL_THICKNESS - 20);
@@ -135,13 +142,14 @@ export class StageScene extends Phaser.Scene {
   }
 
   spawnEnemy() {
-    const positions = [
-      { x: Phaser.Math.Between(0, WORLD_WIDTH), y: -20 },
-      { x: Phaser.Math.Between(0, WORLD_WIDTH), y: WORLD_HEIGHT + 20 },
-      { x: -20, y: Phaser.Math.Between(0, WORLD_HEIGHT) },
-      { x: WORLD_WIDTH + 20, y: Phaser.Math.Between(0, WORLD_HEIGHT) },
-    ];
-    const { x, y } = positions[Phaser.Math.Between(0, 3)];
+    // Spawn in a ring just outside the visible camera area around the player, not fixed map edges —
+    // the arena is much bigger than the viewport, so absolute-edge spawns would land far off-screen.
+    const camera = this.cameras.main;
+    const spawnRadius = Math.max(camera.width, camera.height) / 2 + 60;
+    const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+    const margin = WALL_THICKNESS + 10;
+    const x = Phaser.Math.Clamp(this.player.x + Math.cos(angle) * spawnRadius, margin, WORLD_WIDTH - margin);
+    const y = Phaser.Math.Clamp(this.player.y + Math.sin(angle) * spawnRadius, margin, WORLD_HEIGHT - margin);
     const textureKey = ENEMY_TEXTURE_KEYS[Phaser.Math.Between(0, ENEMY_TEXTURE_KEYS.length - 1)];
     const enemy = this.enemies.create(x, y, textureKey);
     enemy.setScale(0);
