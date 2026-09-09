@@ -2,18 +2,6 @@ import Phaser from 'phaser';
 import { playCorrect, playWrong } from '../systems/SfxPlayer.js';
 import { addPanelShadow } from '../ui/panelStyle.js';
 
-const UPGRADE_LABELS = {
-  speed: '연사 속도',
-  range: '공격 사거리',
-  multishot: '다중 사격',
-};
-
-const UPGRADE_ICONS = {
-  speed: '⚡',
-  range: '🏹',
-  multishot: '🎯',
-};
-
 export class QuestionScene extends Phaser.Scene {
   constructor() {
     super('Question');
@@ -21,7 +9,7 @@ export class QuestionScene extends Phaser.Scene {
 
   init(data) {
     this.question = data.question;
-    this.upgradeType = data.upgradeType;
+    this.rewardIcon = data.rewardIcon ?? '⚔️';
     this.difficulty = data.difficulty ?? 1;
     this.answered = false;
   }
@@ -44,7 +32,7 @@ export class QuestionScene extends Phaser.Scene {
       .text(width / 2 - 190, height / 2 - 125, stars, { fontSize: '14px', color: '#f6e05e', fontFamily: 'sans-serif' })
       .setOrigin(0, 0.5);
     this.add
-      .text(width / 2 + 190, height / 2 - 125, UPGRADE_ICONS[this.upgradeType] ?? '⚔️', { fontSize: '18px' })
+      .text(width / 2 + 190, height / 2 - 125, this.rewardIcon, { fontSize: '18px' })
       .setOrigin(1, 0.5);
 
     if (this.question.type === 'comparison') {
@@ -208,8 +196,7 @@ export class QuestionScene extends Phaser.Scene {
     });
 
     const { width, height } = this.scale;
-    const upgradeLabel = UPGRADE_LABELS[this.upgradeType] ?? '공격력';
-    const message = selected.isCorrect ? `정답! ${upgradeLabel} UP! ⚔️` : `괜찮아요! ${upgradeLabel} 조금 UP 💪`;
+    const message = selected.isCorrect ? `정답! ${this.rewardIcon} 강화!` : `괜찮아요! ${this.rewardIcon} 조금 강화`;
     const color = selected.isCorrect ? '#48bb78' : '#f6ad55';
     const messageY = this.question.type === 'comparison' ? height / 2 + 110 : height / 2 + 95;
     this.add

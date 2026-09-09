@@ -3,6 +3,7 @@ import { generateQuestionForUnit } from '../systems/QuestionEngine.js';
 import { getSave } from '../systems/SaveManager.js';
 import { getCosmeticColor, DEFAULT_COSMETIC_ID } from '../data/cosmetics.js';
 import { playAttack, playHit, playLevelUp } from '../systems/SfxPlayer.js';
+import { WEAPON_DEFS, WEAPON_IDS, MAX_WEAPON_LEVEL, getWeaponStats } from '../data/weapons.js';
 
 // STAGE_DURATION_MS, the spawn-rate ramp, and LEVEL_XP_THRESHOLDS are tuned together —
 // raising the stage duration without extending the threshold table means questions stop
@@ -37,8 +38,10 @@ const WORLD_HEIGHT = 1200;
 const SPRITE_SCALE = 3;
 const WALL_THICKNESS = 32;
 const ENEMY_TEXTURE_KEYS = ['enemySlime', 'enemyGhost', 'enemyOrc'];
-const MAX_PROJECTILE_COUNT = 3;
-const MULTISHOT_ROLL_CHANCE = 0.15;
+const MAX_WEAPONS = 4;
+// The reward is planned before the answer is known (so its icon can be previewed), so this
+// chance applies regardless of correct/wrong — only the follow-up effect differs by outcome.
+const NEW_WEAPON_CHANCE = 0.6;
 
 export class StageScene extends Phaser.Scene {
   constructor() {
@@ -51,10 +54,8 @@ export class StageScene extends Phaser.Scene {
     this.level = 0;
     this.correctAnswers = 0;
     this.totalQuestions = 0;
-    this.attackRange = 90;
-    this.attackIntervalMs = 700;
-    this.projectileCount = 1;
-    this.pendingUpgradeType = null;
+    this.weapons = [];
+    this.pendingReward = null;
     this.isPaused = false;
     this.remainingMs = STAGE_DURATION_MS;
     this.spawnBatchSize = 1;
@@ -110,13 +111,6 @@ export class StageScene extends Phaser.Scene {
       callbackScope: this,
     });
 
-    this.attackTimer = this.time.addEvent({
-      delay: this.attackIntervalMs,
-      loop: true,
-      callback: this.performAutoAttack,
-      callbackScope: this,
-    });
-
     this.difficultyTimer = this.time.addEvent({
       delay: SPAWN_RAMP_INTERVAL_MS,
       loop: true,
@@ -132,6 +126,9 @@ export class StageScene extends Phaser.Scene {
     this.killCount = 0;
     this.buildHud();
     this.updateHud();
+
+    // 첫 무기(화살)를 시작부터 들고 시작해 바로 전투에 참여할 수 있게 한다.
+    this.acquireWeapon('arrow');
 
     this.buildVirtualJoystick();
   }
@@ -262,6 +259,19 @@ export class StageScene extends Phaser.Scene {
         enemy.shadow.setPosition(enemy.x, enemy.y + 14);
       }
     });
+
+    this.updateWeapons(delta);
+  }
+
+  updateWeapons(delta) {
+    this.weapons.forEach((weapon) => {
+      weapon.cooldownRemaining -= delta;
+      if (weapon.cooldownRemaining <= 0) {
+        const stats = getWeaponStats(weapon.id, weapon.level);
+        this.fireWeapon(weapon, stats);
+        weapon.cooldownRemaining = stats.interval;
+      }
+    });
   }
 
   buildHud() {
@@ -304,23 +314,35 @@ export class StageScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(18);
     this.timerText = this.add
-      .text(barX + barWidth - 60, 24, '', textStyle)
+      .text(barX + barWidth, 24, '', textStyle)
       .setOrigin(1, 0.5)
       .setScrollFactor(0)
       .setDepth(18);
 
-    this.multishotBadge = this.add
-      .circle(barX + barWidth - 20, 24, 15, 0x2b2b40, 1)
-      .setStrokeStyle(2, 0xf6e05e)
-      .setScrollFactor(0)
-      .setDepth(18)
-      .setVisible(false);
-    this.multishotText = this.add
-      .text(barX + barWidth - 20, 24, '', { fontSize: '12px', color: '#f6e05e', fontFamily: 'sans-serif' })
-      .setOrigin(0.5)
-      .setScrollFactor(0)
-      .setDepth(19)
-      .setVisible(false);
+    // 장착한 무기를 오른쪽부터 아이콘으로 나열 (레벨 숫자와 진화 시 금색 테두리 포함).
+    this.weaponSlots = [];
+    for (let i = 0; i < MAX_WEAPONS; i += 1) {
+      const x = barX + barWidth - 90 - i * 40;
+      const badge = this.add
+        .circle(x, 24, 15, 0x2b2b40, 1)
+        .setStrokeStyle(2, 0x555566)
+        .setScrollFactor(0)
+        .setDepth(18)
+        .setVisible(false);
+      const icon = this.add
+        .text(x, 24, '', { fontSize: '14px' })
+        .setOrigin(0.5)
+        .setScrollFactor(0)
+        .setDepth(19)
+        .setVisible(false);
+      const levelText = this.add
+        .text(x + 10, 32, '', { fontSize: '10px', color: '#f6e05e', fontFamily: 'sans-serif', fontStyle: 'bold' })
+        .setOrigin(0.5)
+        .setScrollFactor(0)
+        .setDepth(19)
+        .setVisible(false);
+      this.weaponSlots.push({ badge, icon, levelText });
+    }
   }
 
   updateHud() {
@@ -340,12 +362,19 @@ export class StageScene extends Phaser.Scene {
 
     this.timeBarFill.scaleX = Phaser.Math.Clamp(this.remainingMs / STAGE_DURATION_MS, 0, 1);
 
-    const showMultishot = this.projectileCount > 1;
-    this.multishotBadge.setVisible(showMultishot);
-    this.multishotText.setVisible(showMultishot);
-    if (showMultishot) {
-      this.multishotText.setText(`x${this.projectileCount}`);
-    }
+    this.weaponSlots.forEach((slot, index) => {
+      const weapon = this.weapons[index];
+      const has = Boolean(weapon);
+      slot.badge.setVisible(has);
+      slot.icon.setVisible(has);
+      slot.levelText.setVisible(has);
+      if (has) {
+        const def = WEAPON_DEFS[weapon.id];
+        slot.icon.setText(def.icon);
+        slot.levelText.setText(`${weapon.level}`);
+        slot.badge.setStrokeStyle(2, weapon.evolved ? 0xf6e05e : 0x555566);
+      }
+    });
   }
 
   applyEquippedPlayerColor() {
@@ -398,24 +427,34 @@ export class StageScene extends Phaser.Scene {
     });
   }
 
-  performAutoAttack() {
-    if (this.isPaused) return;
-    this.findNearestEnemies(this.projectileCount).forEach((enemy) => this.fireProjectile(enemy));
-  }
-
-  findNearestEnemies(count) {
+  findNearestEnemies(count, range) {
     return this.enemies
       .getChildren()
       .map((enemy) => ({ enemy, distance: Phaser.Math.Distance.Between(this.player.x, this.player.y, enemy.x, enemy.y) }))
-      .filter(({ distance }) => distance <= this.attackRange)
+      .filter(({ distance }) => distance <= range)
       .sort((a, b) => a.distance - b.distance)
       .slice(0, count)
       .map(({ enemy }) => enemy);
   }
 
-  fireProjectile(targetEnemy) {
+  fireWeapon(weapon, stats) {
+    const def = WEAPON_DEFS[weapon.id];
+    if (def.behavior === 'homing') {
+      const [target] = this.findNearestEnemies(1, stats.range);
+      if (target) this.fireHomingShot(target, def.color, weapon.evolved);
+    } else if (def.behavior === 'pierce') {
+      this.firePierceShot(stats, def.color, weapon.evolved);
+    } else if (def.behavior === 'aoe') {
+      const [target] = this.findNearestEnemies(1, stats.range);
+      if (target) this.fireAoeShot(target, stats.radius, def.color, weapon.evolved);
+    } else if (def.behavior === 'orbit') {
+      this.fireOrbitPulse(stats.radius, def.color, weapon.evolved);
+    }
+  }
+
+  fireHomingShot(targetEnemy, color, evolved) {
     playAttack();
-    const projectile = this.add.circle(this.player.x, this.player.y, 5, 0xfff176, 1);
+    const projectile = this.add.circle(this.player.x, this.player.y, evolved ? 7 : 5, color, 1);
     const targetX = targetEnemy.x;
     const targetY = targetEnemy.y;
     const travelDistance = Phaser.Math.Distance.Between(this.player.x, this.player.y, targetX, targetY);
@@ -433,6 +472,82 @@ export class StageScene extends Phaser.Scene {
           this.handleEnemyDefeated(targetEnemy);
         }
       },
+    });
+  }
+
+  firePierceShot(stats, color, evolved) {
+    const [nearest] = this.findNearestEnemies(1, stats.range);
+    if (!nearest) return;
+    playAttack();
+
+    const angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, nearest.x, nearest.y);
+    const endX = this.player.x + Math.cos(angle) * stats.range;
+    const endY = this.player.y + Math.sin(angle) * stats.range;
+
+    const streak = this.add
+      .line(0, 0, this.player.x, this.player.y, endX, endY, color, 1)
+      .setLineWidth(evolved ? 6 : 4)
+      .setOrigin(0, 0);
+    this.tweens.add({ targets: streak, alpha: 0, duration: 200, onComplete: () => streak.destroy() });
+
+    const dx = endX - this.player.x;
+    const dy = endY - this.player.y;
+    const lineLengthSq = Math.max(1, dx * dx + dy * dy);
+    [...this.enemies.getChildren()].forEach((enemy) => {
+      if (!enemy.active) return;
+      const t = Phaser.Math.Clamp(((enemy.x - this.player.x) * dx + (enemy.y - this.player.y) * dy) / lineLengthSq, 0, 1);
+      const closestX = this.player.x + t * dx;
+      const closestY = this.player.y + t * dy;
+      if (Phaser.Math.Distance.Between(enemy.x, enemy.y, closestX, closestY) <= stats.corridor) {
+        this.handleEnemyDefeated(enemy);
+      }
+    });
+  }
+
+  fireAoeShot(targetEnemy, radius, color, evolved) {
+    playAttack();
+    const projectile = this.add.circle(this.player.x, this.player.y, evolved ? 8 : 6, color, 1);
+    const targetX = targetEnemy.x;
+    const targetY = targetEnemy.y;
+    const travelDistance = Phaser.Math.Distance.Between(this.player.x, this.player.y, targetX, targetY);
+    const duration = Phaser.Math.Clamp(travelDistance * 1.2, 80, 220);
+
+    this.tweens.add({
+      targets: projectile,
+      x: targetX,
+      y: targetY,
+      duration,
+      onComplete: () => {
+        projectile.destroy();
+        this.explodeAt(targetX, targetY, radius, color);
+      },
+    });
+  }
+
+  explodeAt(x, y, radius, color) {
+    const ring = this.add.circle(x, y, 4, color, 0.5).setStrokeStyle(2, color, 1);
+    this.tweens.add({ targets: ring, radius, alpha: 0, duration: 250, onComplete: () => ring.destroy() });
+
+    [...this.enemies.getChildren()].forEach((enemy) => {
+      if (!enemy.active) return;
+      if (Phaser.Math.Distance.Between(enemy.x, enemy.y, x, y) <= radius) {
+        this.handleEnemyDefeated(enemy);
+      }
+    });
+  }
+
+  fireOrbitPulse(radius, color, evolved) {
+    playAttack();
+    const ring = this.add
+      .circle(this.player.x, this.player.y, 6, color, evolved ? 0.45 : 0.3)
+      .setStrokeStyle(evolved ? 3 : 2, color, 0.8);
+    this.tweens.add({ targets: ring, radius, alpha: 0, duration: 300, onComplete: () => ring.destroy() });
+
+    [...this.enemies.getChildren()].forEach((enemy) => {
+      if (!enemy.active) return;
+      if (Phaser.Math.Distance.Between(enemy.x, enemy.y, this.player.x, this.player.y) <= radius) {
+        this.handleEnemyDefeated(enemy);
+      }
     });
   }
 
@@ -484,12 +599,12 @@ export class StageScene extends Phaser.Scene {
     this.isPaused = true;
     this.physics.pause();
     this.spawnTimer.paused = true;
-    this.attackTimer.paused = true;
     this.difficultyTimer.paused = true;
     const difficulty = this.getDifficultyForLevel();
     const question = generateQuestionForUnit(this.unitId, difficulty);
-    this.pendingUpgradeType = this.pickUpgradeType();
-    this.scene.launch('Question', { question, upgradeType: this.pendingUpgradeType, difficulty });
+    this.pendingReward = this.planWeaponReward();
+    const rewardDef = WEAPON_DEFS[this.pendingReward.weaponId];
+    this.scene.launch('Question', { question, rewardIcon: rewardDef.icon, difficulty });
   }
 
   // 스테이지 초반(레벨 0-2)은 쉬움, 중반(3-6)은 보통, 후반(7+)은 어려움 -
@@ -500,26 +615,64 @@ export class StageScene extends Phaser.Scene {
     return 2;
   }
 
-  pickUpgradeType() {
-    if (this.projectileCount < MAX_PROJECTILE_COUNT && Math.random() < MULTISHOT_ROLL_CHANCE) {
-      return 'multishot';
+  // 정답 여부를 알기 전에 보상 대상을 미리 정해서 문제 화면에 예고 아이콘으로 보여준다.
+  planWeaponReward() {
+    const ownedIds = this.weapons.map((w) => w.id);
+    const canAcquireNew = this.weapons.length < MAX_WEAPONS;
+    const availableToAcquire = WEAPON_IDS.filter((id) => !ownedIds.includes(id));
+
+    if (canAcquireNew && availableToAcquire.length > 0 && (this.weapons.length === 0 || Math.random() < NEW_WEAPON_CHANCE)) {
+      const weaponId = availableToAcquire[Phaser.Math.Between(0, availableToAcquire.length - 1)];
+      return { kind: 'acquire', weaponId };
     }
-    return Math.random() < 0.5 ? 'speed' : 'range';
+
+    const upgradable = this.weapons.filter((w) => w.level < MAX_WEAPON_LEVEL);
+    if (upgradable.length === 0) {
+      // 모두 최고 레벨이거나(드묾) 무기가 아직 없는 극단적인 경우 - 화살은 항상 보유하게 되므로
+      // 실질적으로는 "모두 최고 레벨" 케이스만 남는다. 이때도 아이콘을 보여줘야 하므로 무작위
+      // 보유 무기를 골라 쿨다운만 살짝 당겨준다.
+      const anyWeapon = this.weapons[Phaser.Math.Between(0, this.weapons.length - 1)];
+      return { kind: 'refresh', weaponId: anyWeapon.id };
+    }
+    const weapon = upgradable[Phaser.Math.Between(0, upgradable.length - 1)];
+    return { kind: 'levelup', weaponId: weapon.id };
   }
 
-  applyUpgrade(type, isStrong) {
-    if (type === 'multishot') {
-      if (isStrong) {
-        this.projectileCount = Math.min(MAX_PROJECTILE_COUNT, this.projectileCount + 1);
+  applyWeaponReward(reward, isCorrect) {
+    if (reward.kind === 'acquire') {
+      this.acquireWeapon(reward.weaponId);
+    } else if (reward.kind === 'levelup') {
+      const weapon = this.weapons.find((w) => w.id === reward.weaponId);
+      if (isCorrect) {
+        weapon.level = Math.min(MAX_WEAPON_LEVEL, weapon.level + 1);
+        if (weapon.level === MAX_WEAPON_LEVEL) {
+          this.evolveWeapon(weapon);
+        }
       } else {
-        // 오답이면 다중 사격은 늘리지 않고 대신 작은 사거리 보너스로 대체한다.
-        this.attackRange += 5;
+        // 오답이면 레벨은 그대로 두고 다음 발사까지 남은 시간만 조금 당겨준다(약한 업그레이드).
+        weapon.cooldownRemaining = Math.max(0, weapon.cooldownRemaining - 400);
       }
-    } else if (type === 'range') {
-      this.attackRange += isStrong ? 15 : 5;
-    } else {
-      this.attackIntervalMs = Math.max(250, this.attackIntervalMs - (isStrong ? 100 : 30));
+    } else if (reward.kind === 'refresh') {
+      const weapon = this.weapons.find((w) => w.id === reward.weaponId);
+      weapon.cooldownRemaining = Math.max(0, weapon.cooldownRemaining - (isCorrect ? 500 : 200));
     }
+
+    if (isCorrect) {
+      // 정답 보너스: 보유한 모든 무기가 살짝 더 빨리 다시 발사된다.
+      this.weapons.forEach((w) => {
+        w.cooldownRemaining = Math.max(0, w.cooldownRemaining - 200);
+      });
+    }
+  }
+
+  acquireWeapon(weaponId) {
+    this.weapons.push({ id: weaponId, level: 1, cooldownRemaining: 0, evolved: false });
+  }
+
+  evolveWeapon(weapon) {
+    weapon.evolved = true;
+    playLevelUp();
+    this.cameras.main.flash(200, 159, 122, 234);
   }
 
   onQuestionAnswered({ isCorrect }) {
@@ -528,13 +681,11 @@ export class StageScene extends Phaser.Scene {
     if (isCorrect) {
       this.correctAnswers += 1;
     }
-    this.applyUpgrade(this.pendingUpgradeType, isCorrect);
-    this.attackTimer.delay = this.attackIntervalMs;
+    this.applyWeaponReward(this.pendingReward, isCorrect);
     this.scene.stop('Question');
     this.isPaused = false;
     this.physics.resume();
     this.spawnTimer.paused = false;
-    this.attackTimer.paused = false;
     this.difficultyTimer.paused = false;
   }
 
@@ -552,7 +703,6 @@ export class StageScene extends Phaser.Scene {
 
   finishStage() {
     this.spawnTimer.remove();
-    this.attackTimer.remove();
     this.difficultyTimer.remove();
     const accuracy = this.totalQuestions === 0 ? 0 : this.correctAnswers / this.totalQuestions;
     this.scene.start('Result', {
