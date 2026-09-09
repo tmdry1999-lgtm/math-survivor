@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { saveStageResult } from '../systems/SaveManager.js';
+import { playCoin } from '../systems/SfxPlayer.js';
 
 const TEXT_FONT = 'sans-serif';
 
@@ -13,6 +14,7 @@ export class ResultScene extends Phaser.Scene {
   }
 
   create() {
+    this.cameras.main.fadeIn(250, 17, 17, 34);
     const { width, height } = this.scale;
     const { accuracy, totalQuestions, unitId } = this.resultData;
 
@@ -48,6 +50,10 @@ export class ResultScene extends Phaser.Scene {
       .text(width / 2, height / 2 + 40, `별조각 +${currencyEarned}`, { fontSize: '24px', color: '#ffffff', fontFamily: TEXT_FONT })
       .setOrigin(0.5);
 
+    if (currencyEarned > 0) {
+      playCoin();
+    }
+
     this.addButton(width / 2, height / 2 + 100, '다시 하기', '#4fd1c5', () => {
       this.scene.start('Stage', { unitId });
     });
@@ -63,6 +69,8 @@ export class ResultScene extends Phaser.Scene {
       .text(x, y, label, { fontSize: '20px', color, fontFamily: TEXT_FONT })
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true });
+    button.on('pointerover', () => button.setScale(1.08));
+    button.on('pointerout', () => button.setScale(1));
     button.on('pointerdown', onClick);
     return button;
   }

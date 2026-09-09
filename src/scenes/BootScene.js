@@ -1,6 +1,10 @@
 import Phaser from 'phaser';
 import playerUrl from '../assets/sprites/player.png';
 import enemyUrl from '../assets/sprites/enemy.png';
+import floorUrl from '../assets/sprites/floor.png';
+import wallUrl from '../assets/sprites/wall.png';
+import decorCoinUrl from '../assets/sprites/decor-coin.png';
+import decorRubbleUrl from '../assets/sprites/decor-rubble.png';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -10,10 +14,14 @@ export class BootScene extends Phaser.Scene {
   preload() {
     this.load.image('player', playerUrl);
     this.load.image('enemy', enemyUrl);
+    this.load.image('floor', floorUrl);
+    this.load.image('wall', wallUrl);
+    this.load.image('decorCoin', decorCoinUrl);
+    this.load.image('decorRubble', decorRubbleUrl);
   }
 
   create() {
-    // Reserved for a future pickup-orb mechanic / real pixel-art asset swap; unused for now.
+    // Reserved for a future pickup-orb mechanic; also reused as the hit-particle texture in StageScene.
     this.createCircleTexture('xpOrb', 6, 0xf6e05e);
     this.scene.start('Hub');
   }

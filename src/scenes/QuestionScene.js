@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { playCorrect, playWrong } from '../systems/SfxPlayer.js';
 
 export class QuestionScene extends Phaser.Scene {
   constructor() {
@@ -14,9 +15,12 @@ export class QuestionScene extends Phaser.Scene {
     const { width, height } = this.scale;
 
     this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.6);
-    this.add
+    const panel = this.add
       .rectangle(width / 2, height / 2, 420, 280, 0x1a1a2e, 1)
-      .setStrokeStyle(4, 0xf6e05e);
+      .setStrokeStyle(4, 0xf6e05e)
+      .setScale(0.85)
+      .setAlpha(0);
+    this.tweens.add({ targets: panel, scale: 1, alpha: 1, duration: 180, ease: 'Back.Out' });
 
     this.add
       .text(width / 2, height / 2 - 100, '🍎'.repeat(this.question.promptCount), {
@@ -36,6 +40,13 @@ export class QuestionScene extends Phaser.Scene {
         .text(x, height / 2 + 40, String(choice.value), { fontSize: '28px', fontFamily: 'sans-serif' })
         .setOrigin(0.5);
 
+      rectangle.on('pointerover', () => {
+        if (this.answered) return;
+        rectangle.setScale(1.08);
+      });
+      rectangle.on('pointerout', () => {
+        rectangle.setScale(1);
+      });
       rectangle.on('pointerdown', () => {
         if (this.answered) return;
         this.answered = true;
@@ -47,7 +58,14 @@ export class QuestionScene extends Phaser.Scene {
   }
 
   showResult(selected) {
+    if (selected.isCorrect) {
+      playCorrect();
+    } else {
+      playWrong();
+    }
+
     this.buttons.forEach(({ rectangle, choice }) => {
+      rectangle.setScale(1);
       if (choice.isCorrect) {
         rectangle.setStrokeStyle(4, 0x48bb78);
       } else if (choice === selected) {

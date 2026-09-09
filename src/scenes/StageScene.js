@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { generateCountObjectsQuestion } from '../systems/QuestionEngine.js';
 import { getSave } from '../systems/SaveManager.js';
 import { getCosmeticColor, DEFAULT_COSMETIC_ID } from '../data/cosmetics.js';
+import { playAttack, playHit, playLevelUp } from '../systems/SfxPlayer.js';
 
 // STAGE_DURATION_MS, the spawn interval(1200ms), and LEVEL_XP_THRESHOLDS are tuned together —
 // raising the stage duration without extending this list means questions stop appearing
@@ -12,6 +13,7 @@ const WORLD_WIDTH = 800;
 const WORLD_HEIGHT = 600;
 // player/enemy sprites are 16x16 source tiles; scale them up so they read clearly on the 800x600 world.
 const SPRITE_SCALE = 2.5;
+const WALL_THICKNESS = 32;
 
 export class StageScene extends Phaser.Scene {
   constructor() {
@@ -31,6 +33,9 @@ export class StageScene extends Phaser.Scene {
   }
 
   create() {
+    this.cameras.main.fadeIn(250, 17, 17, 34);
+    this.buildBackground();
+
     this.player = this.physics.add.sprite(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 'player');
     this.player.setScale(SPRITE_SCALE);
     this.player.setCollideWorldBounds(true);
@@ -67,6 +72,27 @@ export class StageScene extends Phaser.Scene {
     this.updateHud();
   }
 
+  buildBackground() {
+    this.add.tileSprite(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT, 'floor').setDepth(-10);
+
+    const decorKeys = ['decorCoin', 'decorRubble'];
+    for (let i = 0; i < 6; i += 1) {
+      const key = decorKeys[Phaser.Math.Between(0, decorKeys.length - 1)];
+      const x = Phaser.Math.Between(WALL_THICKNESS + 20, WORLD_WIDTH - WALL_THICKNESS - 20);
+      const y = Phaser.Math.Between(WALL_THICKNESS + 20, WORLD_HEIGHT - WALL_THICKNESS - 20);
+      this.add.image(x, y, key).setScale(SPRITE_SCALE * 0.8).setAlpha(0.5).setDepth(-9);
+    }
+
+    this.add.tileSprite(WORLD_WIDTH / 2, WALL_THICKNESS / 2, WORLD_WIDTH, WALL_THICKNESS, 'wall').setDepth(-8);
+    this.add
+      .tileSprite(WORLD_WIDTH / 2, WORLD_HEIGHT - WALL_THICKNESS / 2, WORLD_WIDTH, WALL_THICKNESS, 'wall')
+      .setDepth(-8);
+    this.add.tileSprite(WALL_THICKNESS / 2, WORLD_HEIGHT / 2, WALL_THICKNESS, WORLD_HEIGHT, 'wall').setDepth(-8);
+    this.add
+      .tileSprite(WORLD_WIDTH - WALL_THICKNESS / 2, WORLD_HEIGHT / 2, WALL_THICKNESS, WORLD_HEIGHT, 'wall')
+      .setDepth(-8);
+  }
+
   update(time, delta) {
     if (this.isPaused) return;
 
@@ -86,6 +112,10 @@ export class StageScene extends Phaser.Scene {
     if (this.cursors.down.isDown || this.wasd.S.isDown) velocity.y += 1;
     velocity.normalize().scale(speed);
     this.player.setVelocity(velocity.x, velocity.y);
+
+    if (velocity.x !== 0) {
+      this.player.setFlipX(velocity.x < 0);
+    }
 
     this.enemies.getChildren().forEach((enemy) => {
       this.physics.moveToObject(enemy, this.player, 70);
@@ -111,7 +141,14 @@ export class StageScene extends Phaser.Scene {
       { x: WORLD_WIDTH + 20, y: Phaser.Math.Between(0, WORLD_HEIGHT) },
     ];
     const { x, y } = positions[Phaser.Math.Between(0, 3)];
-    this.enemies.create(x, y, 'enemy').setScale(SPRITE_SCALE);
+    const enemy = this.enemies.create(x, y, 'enemy');
+    enemy.setScale(0);
+    this.tweens.add({
+      targets: enemy,
+      scale: SPRITE_SCALE,
+      duration: 200,
+      ease: 'Back.Out',
+    });
   }
 
   performAutoAttack() {
@@ -131,6 +168,7 @@ export class StageScene extends Phaser.Scene {
   }
 
   fireProjectile(targetEnemy) {
+    playAttack();
     const projectile = this.add.circle(this.player.x, this.player.y, 5, 0xfff176, 1);
     const targetX = targetEnemy.x;
     const targetY = targetEnemy.y;
@@ -146,12 +184,19 @@ export class StageScene extends Phaser.Scene {
         projectile.destroy();
         // targetEnemy may already be gone (e.g. killed by contact) by the time the projectile lands.
         if (targetEnemy.active) {
-          this.flashHit(targetEnemy.x, targetEnemy.y);
-          targetEnemy.destroy();
-          this.gainXp(1);
+          this.handleEnemyDefeated(targetEnemy);
         }
       },
     });
+  }
+
+  handleEnemyDefeated(enemy) {
+    playHit();
+    this.cameras.main.shake(60, 0.003);
+    this.flashHit(enemy.x, enemy.y);
+    this.spawnHitParticles(enemy.x, enemy.y);
+    enemy.destroy();
+    this.gainXp(1);
   }
 
   flashHit(x, y) {
@@ -165,6 +210,18 @@ export class StageScene extends Phaser.Scene {
     });
   }
 
+  spawnHitParticles(x, y) {
+    const emitter = this.add.particles(x, y, 'xpOrb', {
+      speed: { min: 40, max: 90 },
+      lifespan: 250,
+      scale: { start: 1, end: 0 },
+      quantity: 8,
+      emitting: false,
+    });
+    emitter.explode(8);
+    this.time.delayedCall(300, () => emitter.destroy());
+  }
+
   gainXp(amount) {
     this.xp += amount;
     const threshold = LEVEL_XP_THRESHOLDS[this.level];
@@ -175,6 +232,8 @@ export class StageScene extends Phaser.Scene {
   }
 
   openQuestion() {
+    playLevelUp();
+    this.cameras.main.flash(150, 246, 224, 94);
     this.isPaused = true;
     this.physics.pause();
     this.spawnTimer.paused = true;
@@ -203,8 +262,7 @@ export class StageScene extends Phaser.Scene {
   }
 
   handlePlayerHit(player, enemy) {
-    enemy.destroy();
-    this.gainXp(1);
+    this.handleEnemyDefeated(enemy);
   }
 
   finishStage() {

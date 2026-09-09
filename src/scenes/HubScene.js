@@ -14,6 +14,7 @@ export class HubScene extends Phaser.Scene {
   }
 
   create() {
+    this.cameras.main.fadeIn(250, 17, 17, 34);
     const { width, height } = this.scale;
     const save = getSave();
     const unitId = save.unlockedStages[0] ?? 'nums_within_9';
@@ -62,6 +63,8 @@ export class HubScene extends Phaser.Scene {
       .text(cardX, cardY + 45, '모험 떠나기', { fontSize: '20px', color: '#f6e05e', fontFamily: TEXT_FONT })
       .setOrigin(0.5);
 
+    startButton.on('pointerover', () => startButton.setScale(1.05));
+    startButton.on('pointerout', () => startButton.setScale(1));
     startButton.on('pointerdown', () => {
       this.scene.start('Stage', { unitId });
     });
@@ -91,6 +94,8 @@ export class HubScene extends Phaser.Scene {
         })
         .setOrigin(0.5);
 
+      swatch.on('pointerover', () => swatch.setScale(1.08));
+      swatch.on('pointerout', () => swatch.setScale(1));
       swatch.on('pointerdown', () => this.handleCosmeticClick(item));
 
       return { item, ring, label };
