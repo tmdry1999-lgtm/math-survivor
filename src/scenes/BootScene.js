@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import playerUrl from '../assets/sprites/player.png';
-import enemyUrl from '../assets/sprites/enemy.png';
+import enemySlimeUrl from '../assets/sprites/enemy-slime.png';
+import enemyGhostUrl from '../assets/sprites/enemy-ghost.png';
+import enemyOrcUrl from '../assets/sprites/enemy-orc.png';
 import floorUrl from '../assets/sprites/floor.png';
 import wallUrl from '../assets/sprites/wall.png';
 import decorCoinUrl from '../assets/sprites/decor-coin.png';
@@ -13,7 +15,9 @@ export class BootScene extends Phaser.Scene {
 
   preload() {
     this.load.image('player', playerUrl);
-    this.load.image('enemy', enemyUrl);
+    this.load.image('enemySlime', enemySlimeUrl);
+    this.load.image('enemyGhost', enemyGhostUrl);
+    this.load.image('enemyOrc', enemyOrcUrl);
     this.load.image('floor', floorUrl);
     this.load.image('wall', wallUrl);
     this.load.image('decorCoin', decorCoinUrl);

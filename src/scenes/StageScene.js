@@ -14,6 +14,7 @@ const WORLD_HEIGHT = 600;
 // player/enemy sprites are 16x16 source tiles; scale them up so they read clearly on the 800x600 world.
 const SPRITE_SCALE = 2.5;
 const WALL_THICKNESS = 32;
+const ENEMY_TEXTURE_KEYS = ['enemySlime', 'enemyGhost', 'enemyOrc'];
 
 export class StageScene extends Phaser.Scene {
   constructor() {
@@ -141,7 +142,8 @@ export class StageScene extends Phaser.Scene {
       { x: WORLD_WIDTH + 20, y: Phaser.Math.Between(0, WORLD_HEIGHT) },
     ];
     const { x, y } = positions[Phaser.Math.Between(0, 3)];
-    const enemy = this.enemies.create(x, y, 'enemy');
+    const textureKey = ENEMY_TEXTURE_KEYS[Phaser.Math.Between(0, ENEMY_TEXTURE_KEYS.length - 1)];
+    const enemy = this.enemies.create(x, y, textureKey);
     enemy.setScale(0);
     this.tweens.add({
       targets: enemy,
