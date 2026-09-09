@@ -1,3 +1,5 @@
+import { getNextUnitId } from '../data/units.js';
+
 const SAVE_KEY = 'mathSurvivorSave';
 
 function defaultSave() {
@@ -36,6 +38,10 @@ export function saveStageResult({ unitId, accuracy, currencyEarned }) {
     bestAccuracy: Math.max(existing.bestAccuracy, accuracy),
     attempts: existing.attempts + 1,
   };
+  const nextUnitId = getNextUnitId(unitId);
+  if (nextUnitId && !save.unlockedStages.includes(nextUnitId)) {
+    save.unlockedStages.push(nextUnitId);
+  }
   writeSave(save);
   return save;
 }

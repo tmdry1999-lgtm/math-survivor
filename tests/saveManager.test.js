@@ -46,6 +46,22 @@ describe('SaveManager', () => {
     expect(reloaded.currency).toBe(20);
   });
 
+  it('unlocks the next unit in sequence after clearing a stage', () => {
+    const save = saveStageResult({ unitId: 'nums_within_9', accuracy: 0.5, currencyEarned: 10 });
+    expect(save.unlockedStages).toEqual(['nums_within_9', 'shapes_2d']);
+  });
+
+  it('does not add the next unit twice on repeated clears', () => {
+    saveStageResult({ unitId: 'nums_within_9', accuracy: 0.5, currencyEarned: 10 });
+    const save = saveStageResult({ unitId: 'nums_within_9', accuracy: 0.9, currencyEarned: 18 });
+    expect(save.unlockedStages).toEqual(['nums_within_9', 'shapes_2d']);
+  });
+
+  it('does not unlock anything past the last unit in the sequence', () => {
+    const save = saveStageResult({ unitId: 'shapes_2d', accuracy: 1, currencyEarned: 20 });
+    expect(save.unlockedStages).toEqual(['nums_within_9']);
+  });
+
   it('purchaseCosmetic deducts currency, records ownership, and equips it', () => {
     saveStageResult({ unitId: 'nums_within_9', accuracy: 1, currencyEarned: 20 });
     const save = purchaseCosmetic('skin_coral', 20);

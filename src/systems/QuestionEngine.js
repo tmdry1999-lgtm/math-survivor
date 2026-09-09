@@ -42,3 +42,30 @@ export function generateCountObjectsQuestion() {
     choices: buildChoices(promptCount, 0, 9),
   };
 }
+
+const SHAPE_TYPES = ['triangle', 'square', 'circle'];
+
+export function generateShapeMatchQuestion() {
+  const targetShape = SHAPE_TYPES[randomInt(0, SHAPE_TYPES.length - 1)];
+  const distractors = shuffle(SHAPE_TYPES.filter((shape) => shape !== targetShape));
+  const choices = shuffle([
+    { value: targetShape, isCorrect: true },
+    { value: distractors[0], isCorrect: false },
+    { value: distractors[1], isCorrect: false },
+  ]);
+  return {
+    type: 'shape_match',
+    targetShape,
+    choices,
+  };
+}
+
+const QUESTION_GENERATORS = {
+  nums_within_9: generateCountObjectsQuestion,
+  shapes_2d: generateShapeMatchQuestion,
+};
+
+export function generateQuestionForUnit(unitId) {
+  const generator = QUESTION_GENERATORS[unitId] ?? generateCountObjectsQuestion;
+  return generator();
+}
