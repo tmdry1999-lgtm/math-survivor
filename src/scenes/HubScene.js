@@ -1,10 +1,7 @@
 import Phaser from 'phaser';
 import { getSave, purchaseCosmetic, equipCosmetic } from '../systems/SaveManager.js';
 import { COSMETIC_CATALOG, DEFAULT_COSMETIC_ID } from '../data/cosmetics.js';
-
-const UNIT_LABELS = {
-  nums_within_9: '9까지의 수',
-};
+import { UNIT_SEQUENCE, UNIT_LABELS } from '../data/units.js';
 
 const TEXT_FONT = 'sans-serif';
 
@@ -17,59 +14,81 @@ export class HubScene extends Phaser.Scene {
     this.cameras.main.fadeIn(250, 17, 17, 34);
     const { width, height } = this.scale;
     const save = getSave();
-    const unitId = save.unlockedStages[0] ?? 'nums_within_9';
-    const progress = save.stageProgress[unitId];
 
     this.add.rectangle(width / 2, height / 2, width, height, 0x111122);
 
     this.add
-      .text(width / 2, 50, '나의 작은 방', { fontSize: '28px', color: '#f6e05e', fontFamily: TEXT_FONT })
+      .text(width / 2, 40, '나의 작은 방', { fontSize: '26px', color: '#f6e05e', fontFamily: TEXT_FONT })
       .setOrigin(0.5);
 
     this.add
-      .rectangle(width - 90, 40, 140, 44, 0x1a1a2e)
+      .rectangle(width - 90, 32, 140, 40, 0x1a1a2e)
       .setStrokeStyle(2, 0xf6e05e);
     this.currencyText = this.add
-      .text(width - 90, 40, `⭐ ${save.currency}`, { fontSize: '18px', color: '#ffffff', fontFamily: TEXT_FONT })
+      .text(width - 90, 32, `⭐ ${save.currency}`, { fontSize: '16px', color: '#ffffff', fontFamily: TEXT_FONT })
       .setOrigin(0.5);
 
-    const cardX = width / 2;
-    const cardY = 250;
+    this.buildStageList(width, 155, save);
+    this.buildCosmeticShop(width / 2, 420, save);
+  }
 
-    this.add
-      .rectangle(cardX, cardY, 320, 190, 0x1a1a2e)
-      .setStrokeStyle(3, 0x4fd1c5);
+  buildStageList(width, topY, save) {
+    const cardWidth = 220;
+    const cardHeight = 170;
+    const gap = 20;
+    const totalWidth = UNIT_SEQUENCE.length * cardWidth + (UNIT_SEQUENCE.length - 1) * gap;
+    const startX = width / 2 - totalWidth / 2 + cardWidth / 2;
 
-    this.add
-      .text(cardX, cardY - 60, UNIT_LABELS[unitId] ?? unitId, {
-        fontSize: '22px',
-        color: '#ffffff',
-        fontFamily: TEXT_FONT,
-      })
-      .setOrigin(0.5);
+    UNIT_SEQUENCE.forEach((unitId, index) => {
+      const x = startX + index * (cardWidth + gap);
+      const unlocked = save.unlockedStages.includes(unitId);
+      const progress = save.stageProgress[unitId];
 
-    const statusText = progress
-      ? `최고 정답률 ${Math.round(progress.bestAccuracy * 100)}%  ·  ${progress.attempts}회 도전`
-      : '아직 도전하지 않았어요';
-    this.add
-      .text(cardX, cardY - 25, statusText, { fontSize: '14px', color: '#a0aec0', fontFamily: TEXT_FONT })
-      .setOrigin(0.5);
+      this.add
+        .rectangle(x, topY, cardWidth, cardHeight, unlocked ? 0x1a1a2e : 0x14141f)
+        .setStrokeStyle(3, unlocked ? 0x4fd1c5 : 0x2a2a38);
 
-    const startButton = this.add
-      .rectangle(cardX, cardY + 45, 220, 55, 0x2b2b40)
-      .setStrokeStyle(2, 0xf6e05e)
-      .setInteractive({ useHandCursor: true });
-    this.add
-      .text(cardX, cardY + 45, '모험 떠나기', { fontSize: '20px', color: '#f6e05e', fontFamily: TEXT_FONT })
-      .setOrigin(0.5);
+      this.add
+        .text(x, topY - 55, UNIT_LABELS[unitId] ?? unitId, {
+          fontSize: '16px',
+          color: unlocked ? '#ffffff' : '#555566',
+          fontFamily: TEXT_FONT,
+          align: 'center',
+          wordWrap: { width: cardWidth - 24 },
+        })
+        .setOrigin(0.5);
 
-    startButton.on('pointerover', () => startButton.setScale(1.05));
-    startButton.on('pointerout', () => startButton.setScale(1));
-    startButton.on('pointerdown', () => {
-      this.scene.start('Stage', { unitId });
+      const statusText = !unlocked
+        ? '🔒 잠김'
+        : progress
+          ? `최고 정답률 ${Math.round(progress.bestAccuracy * 100)}%`
+          : '아직 도전하지 않았어요';
+      this.add
+        .text(x, topY - 15, statusText, {
+          fontSize: '12px',
+          color: unlocked ? '#a0aec0' : '#444455',
+          fontFamily: TEXT_FONT,
+        })
+        .setOrigin(0.5);
+
+      if (!unlocked) {
+        return;
+      }
+
+      const startButton = this.add
+        .rectangle(x, topY + 55, cardWidth - 30, 44, 0x2b2b40)
+        .setStrokeStyle(2, 0xf6e05e)
+        .setInteractive({ useHandCursor: true });
+      this.add
+        .text(x, topY + 55, '도전하기', { fontSize: '16px', color: '#f6e05e', fontFamily: TEXT_FONT })
+        .setOrigin(0.5);
+
+      startButton.on('pointerover', () => startButton.setScale(1.05));
+      startButton.on('pointerout', () => startButton.setScale(1));
+      startButton.on('pointerdown', () => {
+        this.scene.start('Stage', { unitId });
+      });
     });
-
-    this.buildCosmeticShop(cardX, 460, save);
   }
 
   buildCosmeticShop(centerX, y, initialSave) {
