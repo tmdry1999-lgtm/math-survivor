@@ -5,6 +5,10 @@ import { UNIT_SEQUENCE, UNIT_LABELS } from '../data/units.js';
 import { isMuted, setMuted, startBackgroundMusic, stopBackgroundMusic } from '../systems/SfxPlayer.js';
 
 const TEXT_FONT = 'sans-serif';
+// 순차 잠금 대신 모든 단원을 처음부터 열어두기로 한 제품 결정.
+// 다시 순차 잠금으로 되돌리려면 이 값을 false로 바꾸면 된다
+// (SaveManager는 여전히 unlockedStages를 기록하므로 언제든 복원 가능).
+const ALL_STAGES_UNLOCKED = true;
 
 export class HubScene extends Phaser.Scene {
   constructor() {
@@ -66,7 +70,7 @@ export class HubScene extends Phaser.Scene {
 
     UNIT_SEQUENCE.forEach((unitId, index) => {
       const x = startX + index * (cardWidth + gap);
-      const unlocked = save.unlockedStages.includes(unitId);
+      const unlocked = ALL_STAGES_UNLOCKED || save.unlockedStages.includes(unitId);
       const progress = save.stageProgress[unitId];
 
       this.add

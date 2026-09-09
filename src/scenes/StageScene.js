@@ -19,9 +19,8 @@ function buildLevelThresholds(levelCount) {
   return thresholds;
 }
 
-const LEVEL_XP_THRESHOLDS = buildLevelThresholds(20);
-// 목표 스테이지 길이: 4분 30초 (기획서 4~5분 목표)
-const STAGE_DURATION_MS = 270000;
+const LEVEL_XP_THRESHOLDS = buildLevelThresholds(10);
+const STAGE_DURATION_MS = 120000;
 const SPAWN_DELAY_START_MS = 1200;
 const SPAWN_DELAY_FLOOR_MS = 500;
 const SPAWN_RAMP_STEP_MS = 100;
