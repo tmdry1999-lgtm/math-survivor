@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { playCorrect, playWrong } from '../systems/SfxPlayer.js';
+import { addPanelShadow } from '../ui/panelStyle.js';
 
 const UPGRADE_LABELS = {
   speed: '연사 속도',
@@ -22,12 +23,14 @@ export class QuestionScene extends Phaser.Scene {
     const { width, height } = this.scale;
 
     this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.6);
+    const panelShadow = addPanelShadow(this, width / 2, height / 2, 420, 280, 6).setScale(0.85);
     const panel = this.add
       .rectangle(width / 2, height / 2, 420, 280, 0x1a1a2e, 1)
       .setStrokeStyle(4, 0xf6e05e)
       .setScale(0.85)
       .setAlpha(0);
-    this.tweens.add({ targets: panel, scale: 1, alpha: 1, duration: 180, ease: 'Back.Out' });
+    this.tweens.add({ targets: [panel, panelShadow], scale: 1, duration: 180, ease: 'Back.Out' });
+    this.tweens.add({ targets: panel, alpha: 1, duration: 180, ease: 'Back.Out' });
 
     if (this.question.type === 'comparison') {
       this.buttons = this.renderComparisonChoices(width, height);
@@ -46,6 +49,7 @@ export class QuestionScene extends Phaser.Scene {
 
     return choices.map((choice, index) => {
       const x = startX + index * spacing;
+      addPanelShadow(this, x, y, 90, 70, 3);
       const rectangle = this.add
         .rectangle(x, y, 90, 70, 0x2b2b40)
         .setStrokeStyle(2, 0xffffff)
@@ -84,6 +88,7 @@ export class QuestionScene extends Phaser.Scene {
 
     const buttons = sides.map(({ x, count, value }) => {
       const choice = this.question.choices.find((c) => c.value === value);
+      addPanelShadow(this, x, y + panelY, 180, 130, 4);
       const rectangle = this.add
         .rectangle(x, y + panelY, 180, 130, 0x2b2b40)
         .setStrokeStyle(2, 0xffffff)

@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { startBackgroundMusic } from '../systems/SfxPlayer.js';
+import { addPanelShadow } from '../ui/panelStyle.js';
 
 const TEXT_FONT = 'sans-serif';
 
@@ -49,6 +50,7 @@ export class TitleScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
+    addPanelShadow(this, width / 2, height / 2 + 60, 220, 60, 5);
     const startButton = this.add
       .rectangle(width / 2, height / 2 + 60, 220, 60, 0x2b2b40)
       .setStrokeStyle(3, 0xf6e05e)

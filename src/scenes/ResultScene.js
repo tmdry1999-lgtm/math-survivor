@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { saveStageResult } from '../systems/SaveManager.js';
 import { playCoin } from '../systems/SfxPlayer.js';
+import { addPanelShadow } from '../ui/panelStyle.js';
 
 const TEXT_FONT = 'sans-serif';
 
@@ -81,13 +82,16 @@ export class ResultScene extends Phaser.Scene {
   }
 
   addButton(x, y, label, color, onClick) {
-    const button = this.add
-      .text(x, y, label, { fontSize: '20px', color, fontFamily: TEXT_FONT })
-      .setOrigin(0.5)
+    addPanelShadow(this, x, y, 220, 44, 4);
+    const background = this.add
+      .rectangle(x, y, 220, 44, 0x1a1a2e)
+      .setStrokeStyle(2, Phaser.Display.Color.HexStringToColor(color).color)
       .setInteractive({ useHandCursor: true });
-    button.on('pointerover', () => button.setScale(1.08));
-    button.on('pointerout', () => button.setScale(1));
-    button.on('pointerdown', onClick);
-    return button;
+    this.add.text(x, y, label, { fontSize: '18px', color, fontFamily: TEXT_FONT }).setOrigin(0.5);
+
+    background.on('pointerover', () => background.setScale(1.05));
+    background.on('pointerout', () => background.setScale(1));
+    background.on('pointerdown', onClick);
+    return background;
   }
 }

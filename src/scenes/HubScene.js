@@ -3,6 +3,7 @@ import { getSave, purchaseCosmetic, equipCosmetic } from '../systems/SaveManager
 import { COSMETIC_CATALOG, DEFAULT_COSMETIC_ID } from '../data/cosmetics.js';
 import { UNIT_SEQUENCE, UNIT_LABELS } from '../data/units.js';
 import { isMuted, setMuted, startBackgroundMusic, stopBackgroundMusic } from '../systems/SfxPlayer.js';
+import { addPanelShadow } from '../ui/panelStyle.js';
 
 const TEXT_FONT = 'sans-serif';
 // 순차 잠금 대신 모든 단원을 처음부터 열어두기로 한 제품 결정.
@@ -31,6 +32,7 @@ export class HubScene extends Phaser.Scene {
       .text(width / 2, 40, '나의 작은 방', { fontSize: '26px', color: '#f6e05e', fontFamily: TEXT_FONT })
       .setOrigin(0.5);
 
+    addPanelShadow(this, width - 90, 32, 140, 40, 3);
     this.add
       .rectangle(width - 90, 32, 140, 40, 0x1a1a2e)
       .setStrokeStyle(2, 0xf6e05e);
@@ -50,6 +52,7 @@ export class HubScene extends Phaser.Scene {
   }
 
   buildMuteButton(x, y) {
+    addPanelShadow(this, x, y, 44, 40, 3);
     const background = this.add
       .rectangle(x, y, 44, 40, 0x1a1a2e)
       .setStrokeStyle(2, 0xf6e05e)
@@ -90,6 +93,9 @@ export class HubScene extends Phaser.Scene {
       const unlocked = ALL_STAGES_UNLOCKED || save.unlockedStages.includes(unitId);
       const progress = save.stageProgress[unitId];
 
+      if (unlocked) {
+        addPanelShadow(this, x, y, cardWidth, cardHeight);
+      }
       this.add
         .rectangle(x, y, cardWidth, cardHeight, unlocked ? 0x1a1a2e : 0x14141f)
         .setStrokeStyle(3, unlocked ? 0x4fd1c5 : 0x2a2a38);
@@ -121,6 +127,7 @@ export class HubScene extends Phaser.Scene {
         return;
       }
 
+      addPanelShadow(this, x, y + 42, cardWidth - 30, 36, 3);
       const startButton = this.add
         .rectangle(x, y + 42, cardWidth - 30, 36, 0x2b2b40)
         .setStrokeStyle(2, 0xf6e05e)
@@ -147,6 +154,7 @@ export class HubScene extends Phaser.Scene {
 
     this.cosmeticSwatches = COSMETIC_CATALOG.map((item, index) => {
       const x = startX + index * spacing;
+      addPanelShadow(this, x, y, 56, 56, 3);
       const swatch = this.add
         .rectangle(x, y, 56, 56, item.color)
         .setInteractive({ useHandCursor: true });
