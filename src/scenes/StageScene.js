@@ -25,6 +25,7 @@ const SPAWN_DELAY_START_MS = 1200;
 const SPAWN_DELAY_FLOOR_MS = 500;
 const SPAWN_RAMP_STEP_MS = 100;
 const SPAWN_RAMP_INTERVAL_MS = 20000;
+const MAX_SPAWN_BATCH_SIZE = 4;
 // The arena is larger than the 800x600 viewport; the camera follows the player around it.
 const WORLD_WIDTH = 1600;
 const WORLD_HEIGHT = 1200;
@@ -52,6 +53,8 @@ export class StageScene extends Phaser.Scene {
     this.pendingUpgradeType = null;
     this.isPaused = false;
     this.remainingMs = STAGE_DURATION_MS;
+    this.spawnBatchSize = 1;
+    this.difficultyRampCount = 0;
   }
 
   create() {
@@ -61,6 +64,16 @@ export class StageScene extends Phaser.Scene {
     this.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
 
+    this.playerAura = this.add.circle(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 26, 0xf6e05e, 0.2).setDepth(-1.5);
+    this.tweens.add({
+      targets: this.playerAura,
+      scale: 1.15,
+      alpha: 0.1,
+      duration: 900,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.InOut',
+    });
     this.playerShadow = this.add.ellipse(WORLD_WIDTH / 2, WORLD_HEIGHT / 2 + 16, 26, 10, 0x000000, 0.35).setDepth(-1);
 
     this.player = this.physics.add.sprite(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 'player');
@@ -110,10 +123,8 @@ export class StageScene extends Phaser.Scene {
       this.events.off('question-answered', this.onQuestionAnswered, this);
     });
 
-    this.hudText = this.add
-      .text(12, 12, '', { fontSize: '16px', color: '#ffffff', fontFamily: 'sans-serif' })
-      .setDepth(10)
-      .setScrollFactor(0);
+    this.killCount = 0;
+    this.buildHud();
     this.updateHud();
 
     this.buildVirtualJoystick();
@@ -176,6 +187,17 @@ export class StageScene extends Phaser.Scene {
   buildBackground() {
     this.add.tileSprite(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT, 'floor').setDepth(-10);
 
+    // 단색 바닥이 밋밋해 보이지 않도록 은은한 명암 얼룩을 흩뿌려 지형에 변화를 준다.
+    for (let i = 0; i < 40; i += 1) {
+      const x = Phaser.Math.Between(WALL_THICKNESS, WORLD_WIDTH - WALL_THICKNESS);
+      const y = Phaser.Math.Between(WALL_THICKNESS, WORLD_HEIGHT - WALL_THICKNESS);
+      const radius = Phaser.Math.Between(20, 55);
+      const isLight = Math.random() < 0.5;
+      this.add
+        .ellipse(x, y, radius * 2, radius * 1.3, isLight ? 0xffffff : 0x000000, 0.08)
+        .setDepth(-9.5);
+    }
+
     const decorKeys = ['decorCoin', 'decorRubble'];
     for (let i = 0; i < 24; i += 1) {
       const key = decorKeys[Phaser.Math.Between(0, decorKeys.length - 1)];
@@ -226,6 +248,7 @@ export class StageScene extends Phaser.Scene {
       this.player.setFlipX(velocity.x < 0);
     }
     this.playerShadow.setPosition(this.player.x, this.player.y + 16);
+    this.playerAura.setPosition(this.player.x, this.player.y);
 
     this.enemies.getChildren().forEach((enemy) => {
       this.physics.moveToObject(enemy, this.player, 70);
@@ -235,10 +258,88 @@ export class StageScene extends Phaser.Scene {
     });
   }
 
+  buildHud() {
+    const barX = 20;
+    const barWidth = 760;
+    const textStyle = { fontSize: '15px', color: '#ffffff', fontFamily: 'sans-serif' };
+
+    this.add.rectangle(400, 26, 800, 52, 0x000000, 0.55).setScrollFactor(0).setDepth(15);
+
+    this.add
+      .rectangle(barX, 4, barWidth, 5, 0x000000, 0.5)
+      .setOrigin(0, 0.5)
+      .setScrollFactor(0)
+      .setDepth(16);
+    this.xpBarFill = this.add
+      .rectangle(barX, 4, barWidth, 5, 0x4fd1c5, 1)
+      .setOrigin(0, 0.5)
+      .setScrollFactor(0)
+      .setDepth(17);
+
+    this.add
+      .rectangle(barX, 48, barWidth, 4, 0x000000, 0.5)
+      .setOrigin(0, 0.5)
+      .setScrollFactor(0)
+      .setDepth(16);
+    this.timeBarFill = this.add
+      .rectangle(barX, 48, barWidth, 4, 0xf6ad55, 1)
+      .setOrigin(0, 0.5)
+      .setScrollFactor(0)
+      .setDepth(17);
+
+    this.levelText = this.add
+      .text(barX, 24, '', { ...textStyle, color: '#f6e05e', fontStyle: 'bold' })
+      .setOrigin(0, 0.5)
+      .setScrollFactor(0)
+      .setDepth(18);
+    this.killText = this.add
+      .text(barX + 90, 24, '', textStyle)
+      .setOrigin(0, 0.5)
+      .setScrollFactor(0)
+      .setDepth(18);
+    this.timerText = this.add
+      .text(barX + barWidth - 60, 24, '', textStyle)
+      .setOrigin(1, 0.5)
+      .setScrollFactor(0)
+      .setDepth(18);
+
+    this.multishotBadge = this.add
+      .circle(barX + barWidth - 20, 24, 15, 0x2b2b40, 1)
+      .setStrokeStyle(2, 0xf6e05e)
+      .setScrollFactor(0)
+      .setDepth(18)
+      .setVisible(false);
+    this.multishotText = this.add
+      .text(barX + barWidth - 20, 24, '', { fontSize: '12px', color: '#f6e05e', fontFamily: 'sans-serif' })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(19)
+      .setVisible(false);
+  }
+
   updateHud() {
     const secondsLeft = Math.max(0, Math.ceil(this.remainingMs / 1000));
-    const multishotSuffix = this.projectileCount > 1 ? `  🎯x${this.projectileCount}` : '';
-    this.hudText.setText(`남은 시간 ${secondsLeft}초  레벨 ${this.level}${multishotSuffix}`);
+    const minutes = Math.floor(secondsLeft / 60);
+    const seconds = secondsLeft % 60;
+    this.timerText.setText(`${minutes}:${String(seconds).padStart(2, '0')}`);
+
+    this.levelText.setText(`Lv.${this.level}`);
+    this.killText.setText(`처치 ${this.killCount}`);
+
+    const currentThreshold = LEVEL_XP_THRESHOLDS[this.level] ?? this.xp;
+    const previousThreshold = this.level > 0 ? LEVEL_XP_THRESHOLDS[this.level - 1] : 0;
+    const levelSpan = Math.max(1, currentThreshold - previousThreshold);
+    const xpProgress = Phaser.Math.Clamp((this.xp - previousThreshold) / levelSpan, 0, 1);
+    this.xpBarFill.scaleX = xpProgress;
+
+    this.timeBarFill.scaleX = Phaser.Math.Clamp(this.remainingMs / STAGE_DURATION_MS, 0, 1);
+
+    const showMultishot = this.projectileCount > 1;
+    this.multishotBadge.setVisible(showMultishot);
+    this.multishotText.setVisible(showMultishot);
+    if (showMultishot) {
+      this.multishotText.setText(`x${this.projectileCount}`);
+    }
   }
 
   applyEquippedPlayerColor() {
@@ -248,6 +349,14 @@ export class StageScene extends Phaser.Scene {
   }
 
   spawnEnemy() {
+    // 난이도 램프가 진행될수록 한 번에 여러 마리를 몰아서 스폰해 무리 지어 몰려오는
+    // 느낌을 낸다 (spawnBatchSize는 rampDifficulty에서 점진적으로 늘어남).
+    for (let i = 0; i < this.spawnBatchSize; i += 1) {
+      this.spawnOneEnemy();
+    }
+  }
+
+  spawnOneEnemy() {
     // Spawn in a ring just outside the visible camera area around the player, not fixed map edges —
     // the arena is much bigger than the viewport, so absolute-edge spawns would land far off-screen.
     const camera = this.cameras.main;
@@ -324,6 +433,7 @@ export class StageScene extends Phaser.Scene {
     this.flashHit(enemy.x, enemy.y);
     this.spawnHitParticles(enemy.x, enemy.y);
     enemy.destroy();
+    this.killCount += 1;
     this.gainXp(1);
   }
 
@@ -424,6 +534,10 @@ export class StageScene extends Phaser.Scene {
 
   rampDifficulty() {
     this.spawnTimer.delay = Math.max(SPAWN_DELAY_FLOOR_MS, this.spawnTimer.delay - SPAWN_RAMP_STEP_MS);
+    this.difficultyRampCount += 1;
+    // 두 번의 램프(40초)마다 한 번에 몰아서 스폰하는 적 수를 늘려 후반부에 무리 지어
+    // 몰려오는 느낌을 강화한다.
+    this.spawnBatchSize = Math.min(MAX_SPAWN_BATCH_SIZE, 1 + Math.floor(this.difficultyRampCount / 2));
   }
 
   finishStage() {
