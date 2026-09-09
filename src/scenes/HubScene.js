@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { getSave, purchaseCosmetic, equipCosmetic } from '../systems/SaveManager.js';
 import { COSMETIC_CATALOG, DEFAULT_COSMETIC_ID } from '../data/cosmetics.js';
 import { UNIT_SEQUENCE, UNIT_LABELS } from '../data/units.js';
+import { isMuted, setMuted, startBackgroundMusic, stopBackgroundMusic } from '../systems/SfxPlayer.js';
 
 const TEXT_FONT = 'sans-serif';
 
@@ -28,8 +29,32 @@ export class HubScene extends Phaser.Scene {
       .text(width - 90, 32, `⭐ ${save.currency}`, { fontSize: '16px', color: '#ffffff', fontFamily: TEXT_FONT })
       .setOrigin(0.5);
 
+    this.buildMuteButton(50, 32);
     this.buildStageList(width, 155, save);
     this.buildCosmeticShop(width / 2, 420, save);
+  }
+
+  buildMuteButton(x, y) {
+    const background = this.add
+      .rectangle(x, y, 44, 40, 0x1a1a2e)
+      .setStrokeStyle(2, 0xf6e05e)
+      .setInteractive({ useHandCursor: true });
+    const label = this.add
+      .text(x, y, isMuted() ? '🔇' : '🔊', { fontSize: '18px' })
+      .setOrigin(0.5);
+
+    background.on('pointerover', () => background.setScale(1.05));
+    background.on('pointerout', () => background.setScale(1));
+    background.on('pointerdown', () => {
+      const nextMuted = !isMuted();
+      setMuted(nextMuted);
+      if (nextMuted) {
+        stopBackgroundMusic();
+      } else {
+        startBackgroundMusic();
+      }
+      label.setText(nextMuted ? '🔇' : '🔊');
+    });
   }
 
   buildStageList(width, topY, save) {

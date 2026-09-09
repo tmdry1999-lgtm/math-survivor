@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { BootScene } from './scenes/BootScene.js';
+import { TitleScene } from './scenes/TitleScene.js';
 import { HubScene } from './scenes/HubScene.js';
 import { StageScene } from './scenes/StageScene.js';
 import { QuestionScene } from './scenes/QuestionScene.js';
@@ -20,7 +21,7 @@ const config = {
     default: 'arcade',
     arcade: { debug: false },
   },
-  scene: [BootScene, HubScene, StageScene, QuestionScene, ResultScene],
+  scene: [BootScene, TitleScene, HubScene, StageScene, QuestionScene, ResultScene],
 };
 
 // eslint-disable-next-line no-new

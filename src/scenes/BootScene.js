@@ -27,7 +27,7 @@ export class BootScene extends Phaser.Scene {
   create() {
     // Reserved for a future pickup-orb mechanic; also reused as the hit-particle texture in StageScene.
     this.createCircleTexture('xpOrb', 6, 0xf6e05e);
-    this.scene.start('Hub');
+    this.scene.start('Title');
   }
 
   createCircleTexture(key, radius, color) {
