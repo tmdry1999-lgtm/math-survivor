@@ -33,6 +33,8 @@ const WORLD_HEIGHT = 1200;
 const SPRITE_SCALE = 2.5;
 const WALL_THICKNESS = 32;
 const ENEMY_TEXTURE_KEYS = ['enemySlime', 'enemyGhost', 'enemyOrc'];
+const MAX_PROJECTILE_COUNT = 3;
+const MULTISHOT_ROLL_CHANCE = 0.15;
 
 export class StageScene extends Phaser.Scene {
   constructor() {
@@ -47,6 +49,8 @@ export class StageScene extends Phaser.Scene {
     this.totalQuestions = 0;
     this.attackRange = 90;
     this.attackIntervalMs = 700;
+    this.projectileCount = 1;
+    this.pendingUpgradeType = null;
     this.isPaused = false;
     this.remainingMs = STAGE_DURATION_MS;
   }
@@ -156,7 +160,8 @@ export class StageScene extends Phaser.Scene {
 
   updateHud() {
     const secondsLeft = Math.max(0, Math.ceil(this.remainingMs / 1000));
-    this.hudText.setText(`남은 시간 ${secondsLeft}초  레벨 ${this.level}`);
+    const multishotSuffix = this.projectileCount > 1 ? `  🎯x${this.projectileCount}` : '';
+    this.hudText.setText(`남은 시간 ${secondsLeft}초  레벨 ${this.level}${multishotSuffix}`);
   }
 
   applyEquippedPlayerColor() {
@@ -187,18 +192,17 @@ export class StageScene extends Phaser.Scene {
 
   performAutoAttack() {
     if (this.isPaused) return;
-    let nearestEnemy = null;
-    let nearestDistance = this.attackRange;
-    this.enemies.getChildren().forEach((enemy) => {
-      const distance = Phaser.Math.Distance.Between(this.player.x, this.player.y, enemy.x, enemy.y);
-      if (distance <= nearestDistance) {
-        nearestEnemy = enemy;
-        nearestDistance = distance;
-      }
-    });
-    if (nearestEnemy) {
-      this.fireProjectile(nearestEnemy);
-    }
+    this.findNearestEnemies(this.projectileCount).forEach((enemy) => this.fireProjectile(enemy));
+  }
+
+  findNearestEnemies(count) {
+    return this.enemies
+      .getChildren()
+      .map((enemy) => ({ enemy, distance: Phaser.Math.Distance.Between(this.player.x, this.player.y, enemy.x, enemy.y) }))
+      .filter(({ distance }) => distance <= this.attackRange)
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, count)
+      .map(({ enemy }) => enemy);
   }
 
   fireProjectile(targetEnemy) {
@@ -274,7 +278,30 @@ export class StageScene extends Phaser.Scene {
     this.attackTimer.paused = true;
     this.difficultyTimer.paused = true;
     const question = generateQuestionForUnit(this.unitId);
-    this.scene.launch('Question', { question });
+    this.pendingUpgradeType = this.pickUpgradeType();
+    this.scene.launch('Question', { question, upgradeType: this.pendingUpgradeType });
+  }
+
+  pickUpgradeType() {
+    if (this.projectileCount < MAX_PROJECTILE_COUNT && Math.random() < MULTISHOT_ROLL_CHANCE) {
+      return 'multishot';
+    }
+    return Math.random() < 0.5 ? 'speed' : 'range';
+  }
+
+  applyUpgrade(type, isStrong) {
+    if (type === 'multishot') {
+      if (isStrong) {
+        this.projectileCount = Math.min(MAX_PROJECTILE_COUNT, this.projectileCount + 1);
+      } else {
+        // 오답이면 다중 사격은 늘리지 않고 대신 작은 사거리 보너스로 대체한다.
+        this.attackRange += 5;
+      }
+    } else if (type === 'range') {
+      this.attackRange += isStrong ? 15 : 5;
+    } else {
+      this.attackIntervalMs = Math.max(250, this.attackIntervalMs - (isStrong ? 100 : 30));
+    }
   }
 
   onQuestionAnswered({ isCorrect }) {
@@ -282,12 +309,8 @@ export class StageScene extends Phaser.Scene {
     this.totalQuestions += 1;
     if (isCorrect) {
       this.correctAnswers += 1;
-      this.attackRange += 15;
-      this.attackIntervalMs = Math.max(250, this.attackIntervalMs - 100);
-    } else {
-      this.attackRange += 5;
-      this.attackIntervalMs = Math.max(250, this.attackIntervalMs - 30);
     }
+    this.applyUpgrade(this.pendingUpgradeType, isCorrect);
     this.attackTimer.delay = this.attackIntervalMs;
     this.scene.stop('Question');
     this.isPaused = false;

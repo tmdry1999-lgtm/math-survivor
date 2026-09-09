@@ -1,6 +1,12 @@
 import Phaser from 'phaser';
 import { playCorrect, playWrong } from '../systems/SfxPlayer.js';
 
+const UPGRADE_LABELS = {
+  speed: '연사 속도',
+  range: '공격 사거리',
+  multishot: '다중 사격',
+};
+
 export class QuestionScene extends Phaser.Scene {
   constructor() {
     super('Question');
@@ -8,6 +14,7 @@ export class QuestionScene extends Phaser.Scene {
 
   init(data) {
     this.question = data.question;
+    this.upgradeType = data.upgradeType;
     this.answered = false;
   }
 
@@ -181,7 +188,8 @@ export class QuestionScene extends Phaser.Scene {
     });
 
     const { width, height } = this.scale;
-    const message = selected.isCorrect ? '정답! 강한 업그레이드 ⚔️' : '괜찮아요! 작은 업그레이드 💪';
+    const upgradeLabel = UPGRADE_LABELS[this.upgradeType] ?? '공격력';
+    const message = selected.isCorrect ? `정답! ${upgradeLabel} UP! ⚔️` : `괜찮아요! ${upgradeLabel} 조금 UP 💪`;
     const color = selected.isCorrect ? '#48bb78' : '#f6ad55';
     const messageY = this.question.type === 'comparison' ? height / 2 + 110 : height / 2 + 95;
     this.add
