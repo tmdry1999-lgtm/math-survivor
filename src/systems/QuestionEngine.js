@@ -60,9 +60,67 @@ export function generateShapeMatchQuestion() {
   };
 }
 
+export function generateAddSubQuestion() {
+  const isAddition = Math.random() < 0.5;
+  let a;
+  let b;
+  let correct;
+  let promptText;
+
+  if (isAddition) {
+    a = randomInt(1, 8);
+    b = randomInt(1, 9 - a);
+    correct = a + b;
+    promptText = `${a} + ${b}`;
+  } else {
+    a = randomInt(1, 9);
+    b = randomInt(0, a);
+    correct = a - b;
+    promptText = `${a} - ${b}`;
+  }
+
+  return {
+    type: 'equation',
+    promptText,
+    choices: buildChoices(correct, 0, 9),
+  };
+}
+
+export function generateComparisonQuestion() {
+  const leftCount = randomInt(1, 9);
+  let rightCount = randomInt(1, 9);
+  while (rightCount === leftCount) {
+    rightCount = randomInt(1, 9);
+  }
+  const leftIsMore = leftCount > rightCount;
+
+  return {
+    type: 'comparison',
+    leftCount,
+    rightCount,
+    choices: shuffle([
+      { value: 'left', isCorrect: leftIsMore },
+      { value: 'right', isCorrect: !leftIsMore },
+    ]),
+  };
+}
+
+export function generateNumberSequenceQuestion() {
+  const sequenceStart = randomInt(1, 47);
+  const correct = sequenceStart + 2;
+  return {
+    type: 'number_sequence',
+    sequenceStart,
+    choices: buildChoices(correct, 1, 50),
+  };
+}
+
 const QUESTION_GENERATORS = {
   nums_within_9: generateCountObjectsQuestion,
   shapes_2d: generateShapeMatchQuestion,
+  add_sub_within_9: generateAddSubQuestion,
+  comparison: generateComparisonQuestion,
+  nums_within_50: generateNumberSequenceQuestion,
 };
 
 export function generateQuestionForUnit(unitId) {

@@ -2,6 +2,9 @@ import { describe, it, expect } from 'vitest';
 import {
   generateCountObjectsQuestion,
   generateShapeMatchQuestion,
+  generateAddSubQuestion,
+  generateComparisonQuestion,
+  generateNumberSequenceQuestion,
   generateQuestionForUnit,
 } from '../src/systems/QuestionEngine.js';
 
@@ -76,6 +79,83 @@ describe('generateShapeMatchQuestion', () => {
   });
 });
 
+describe('generateAddSubQuestion', () => {
+  it('returns exactly 3 choices with exactly one correct answer', () => {
+    const question = generateAddSubQuestion();
+    expect(question.choices).toHaveLength(3);
+    expect(question.choices.filter((choice) => choice.isCorrect)).toHaveLength(1);
+  });
+
+  it('promptText correctly represents the equation matching the correct choice', () => {
+    for (let i = 0; i < 50; i += 1) {
+      const question = generateAddSubQuestion();
+      const correct = question.choices.find((choice) => choice.isCorrect);
+      const [aText, operator, bText] = question.promptText.split(' ');
+      const a = Number(aText);
+      const b = Number(bText);
+      const expected = operator === '+' ? a + b : a - b;
+      expect(correct.value).toBe(expected);
+    }
+  });
+
+  it('never produces a negative result or a sum above 9', () => {
+    for (let i = 0; i < 50; i += 1) {
+      const question = generateAddSubQuestion();
+      const correct = question.choices.find((choice) => choice.isCorrect);
+      expect(correct.value).toBeGreaterThanOrEqual(0);
+      expect(correct.value).toBeLessThanOrEqual(9);
+    }
+  });
+});
+
+describe('generateComparisonQuestion', () => {
+  it('returns exactly 2 choices with exactly one correct answer', () => {
+    const question = generateComparisonQuestion();
+    expect(question.choices).toHaveLength(2);
+    expect(question.choices.filter((choice) => choice.isCorrect)).toHaveLength(1);
+  });
+
+  it('marks "left" correct when leftCount is greater, "right" otherwise', () => {
+    for (let i = 0; i < 50; i += 1) {
+      const question = generateComparisonQuestion();
+      const correct = question.choices.find((choice) => choice.isCorrect);
+      const expectedSide = question.leftCount > question.rightCount ? 'left' : 'right';
+      expect(correct.value).toBe(expectedSide);
+    }
+  });
+
+  it('never generates two equal counts (always a clear answer)', () => {
+    for (let i = 0; i < 50; i += 1) {
+      const question = generateComparisonQuestion();
+      expect(question.leftCount).not.toBe(question.rightCount);
+    }
+  });
+});
+
+describe('generateNumberSequenceQuestion', () => {
+  it('returns exactly 3 choices with exactly one correct answer', () => {
+    const question = generateNumberSequenceQuestion();
+    expect(question.choices).toHaveLength(3);
+    expect(question.choices.filter((choice) => choice.isCorrect)).toHaveLength(1);
+  });
+
+  it('the correct choice is sequenceStart + 2 (the next number after two shown)', () => {
+    for (let i = 0; i < 50; i += 1) {
+      const question = generateNumberSequenceQuestion();
+      const correct = question.choices.find((choice) => choice.isCorrect);
+      expect(correct.value).toBe(question.sequenceStart + 2);
+    }
+  });
+
+  it('stays within the 1-50 range (50까지의 수)', () => {
+    for (let i = 0; i < 50; i += 1) {
+      const question = generateNumberSequenceQuestion();
+      expect(question.sequenceStart).toBeGreaterThanOrEqual(1);
+      expect(question.sequenceStart + 2).toBeLessThanOrEqual(50);
+    }
+  });
+});
+
 describe('generateQuestionForUnit', () => {
   it('routes nums_within_9 to a count_objects question', () => {
     const question = generateQuestionForUnit('nums_within_9');
@@ -85,6 +165,21 @@ describe('generateQuestionForUnit', () => {
   it('routes shapes_2d to a shape_match question', () => {
     const question = generateQuestionForUnit('shapes_2d');
     expect(question.type).toBe('shape_match');
+  });
+
+  it('routes add_sub_within_9 to an equation question', () => {
+    const question = generateQuestionForUnit('add_sub_within_9');
+    expect(question.type).toBe('equation');
+  });
+
+  it('routes comparison to a comparison question', () => {
+    const question = generateQuestionForUnit('comparison');
+    expect(question.type).toBe('comparison');
+  });
+
+  it('routes nums_within_50 to a number_sequence question', () => {
+    const question = generateQuestionForUnit('nums_within_50');
+    expect(question.type).toBe('number_sequence');
   });
 
   it('falls back to count_objects for an unknown unit id', () => {

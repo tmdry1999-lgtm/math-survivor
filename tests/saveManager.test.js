@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { getSave, saveStageResult, purchaseCosmetic, equipCosmetic } from '../src/systems/SaveManager.js';
+import { UNIT_SEQUENCE } from '../src/data/units.js';
 
 describe('SaveManager', () => {
   beforeEach(() => {
@@ -58,7 +59,8 @@ describe('SaveManager', () => {
   });
 
   it('does not unlock anything past the last unit in the sequence', () => {
-    const save = saveStageResult({ unitId: 'shapes_2d', accuracy: 1, currencyEarned: 20 });
+    const lastUnitId = UNIT_SEQUENCE[UNIT_SEQUENCE.length - 1];
+    const save = saveStageResult({ unitId: lastUnitId, accuracy: 1, currencyEarned: 20 });
     expect(save.unlockedStages).toEqual(['nums_within_9']);
   });
 
