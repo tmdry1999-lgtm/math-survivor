@@ -25,12 +25,16 @@ const SPAWN_DELAY_START_MS = 1200;
 const SPAWN_DELAY_FLOOR_MS = 500;
 const SPAWN_RAMP_STEP_MS = 100;
 const SPAWN_RAMP_INTERVAL_MS = 20000;
-const MAX_SPAWN_BATCH_SIZE = 4;
+const MAX_SPAWN_BATCH_SIZE = 3;
+// Hard cap on simultaneously-alive enemies so a slow answerer's screen doesn't fill up
+// with hundreds of active sprites/tweens and tank the frame rate.
+const MAX_LIVE_ENEMIES = 60;
 // The arena is larger than the 800x600 viewport; the camera follows the player around it.
 const WORLD_WIDTH = 1600;
 const WORLD_HEIGHT = 1200;
 // player/enemy sprites are 16x16 source tiles; scale them up so they read clearly on the 800x600 world.
-const SPRITE_SCALE = 2.5;
+// Integer scale (not e.g. 2.5) so pixel art scales cleanly without shimmering as it moves.
+const SPRITE_SCALE = 3;
 const WALL_THICKNESS = 32;
 const ENEMY_TEXTURE_KEYS = ['enemySlime', 'enemyGhost', 'enemyOrc'];
 const MAX_PROJECTILE_COUNT = 3;
@@ -89,7 +93,9 @@ export class StageScene extends Phaser.Scene {
       ease: 'Sine.InOut',
     });
 
-    this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+    // lerp 1 (instant follow, no smoothing lag) avoids the sub-pixel jitter that
+    // pixelArt's roundPixels causes when the camera lags a fraction of a pixel behind.
+    this.cameras.main.startFollow(this.player, true, 1, 1);
 
     this.enemies = this.physics.add.group();
     this.cursors = this.input.keyboard.createCursorKeys();
@@ -351,7 +357,10 @@ export class StageScene extends Phaser.Scene {
   spawnEnemy() {
     // 난이도 램프가 진행될수록 한 번에 여러 마리를 몰아서 스폰해 무리 지어 몰려오는
     // 느낌을 낸다 (spawnBatchSize는 rampDifficulty에서 점진적으로 늘어남).
-    for (let i = 0; i < this.spawnBatchSize; i += 1) {
+    // 처치가 늦어져도 화면에 적이 무한히 쌓여 프레임이 떨어지지 않도록 총원을 제한한다.
+    const room = MAX_LIVE_ENEMIES - this.enemies.getLength();
+    const spawnCount = Math.max(0, Math.min(this.spawnBatchSize, room));
+    for (let i = 0; i < spawnCount; i += 1) {
       this.spawnOneEnemy();
     }
   }
