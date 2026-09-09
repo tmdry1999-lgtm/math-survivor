@@ -61,6 +61,8 @@ export class StageScene extends Phaser.Scene {
     this.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
 
+    this.playerShadow = this.add.ellipse(WORLD_WIDTH / 2, WORLD_HEIGHT / 2 + 16, 26, 10, 0x000000, 0.35).setDepth(-1);
+
     this.player = this.physics.add.sprite(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, 'player');
     this.player.setScale(SPRITE_SCALE);
     this.player.setCollideWorldBounds(true);
@@ -223,9 +225,13 @@ export class StageScene extends Phaser.Scene {
     if (velocity.x !== 0) {
       this.player.setFlipX(velocity.x < 0);
     }
+    this.playerShadow.setPosition(this.player.x, this.player.y + 16);
 
     this.enemies.getChildren().forEach((enemy) => {
       this.physics.moveToObject(enemy, this.player, 70);
+      if (enemy.shadow) {
+        enemy.shadow.setPosition(enemy.x, enemy.y + 14);
+      }
     });
   }
 
@@ -253,6 +259,8 @@ export class StageScene extends Phaser.Scene {
     const textureKey = ENEMY_TEXTURE_KEYS[Phaser.Math.Between(0, ENEMY_TEXTURE_KEYS.length - 1)];
     const enemy = this.enemies.create(x, y, textureKey);
     enemy.setScale(0);
+    enemy.shadow = this.add.ellipse(x, y + 14, 22, 8, 0x000000, 0.3).setDepth(-1);
+    enemy.once(Phaser.GameObjects.Events.DESTROY, () => enemy.shadow.destroy());
     this.tweens.add({
       targets: enemy,
       scale: SPRITE_SCALE,
