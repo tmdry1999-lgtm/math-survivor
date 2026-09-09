@@ -46,12 +46,14 @@ export class ResultScene extends Phaser.Scene {
       .text(width / 2, height / 2, `정답률 ${accuracyPercent}%`, { fontSize: '24px', color: '#ffffff', fontFamily: TEXT_FONT })
       .setOrigin(0.5);
 
+    this.add.image(width / 2 - 45, height / 2 + 40, 'decorCoin').setScale(1.8);
     this.add
-      .text(width / 2, height / 2 + 40, `별조각 +${currencyEarned}`, { fontSize: '24px', color: '#ffffff', fontFamily: TEXT_FONT })
-      .setOrigin(0.5);
+      .text(width / 2 - 10, height / 2 + 40, `+${currencyEarned}`, { fontSize: '24px', color: '#ffffff', fontFamily: TEXT_FONT })
+      .setOrigin(0, 0.5);
 
     if (currencyEarned > 0) {
       playCoin();
+      this.celebrateWithCoinBurst(width / 2, height / 2 - 60);
     }
 
     this.addButton(width / 2, height / 2 + 100, '다시 하기', '#4fd1c5', () => {
@@ -62,6 +64,20 @@ export class ResultScene extends Phaser.Scene {
     });
 
     saveStageResult({ unitId, accuracy, currencyEarned });
+  }
+
+  celebrateWithCoinBurst(x, y) {
+    const emitter = this.add.particles(x, y, 'decorCoin', {
+      speed: { min: 60, max: 140 },
+      angle: { min: 200, max: 340 },
+      lifespan: 700,
+      scale: { start: 0.8, end: 0 },
+      gravityY: 250,
+      quantity: 12,
+      emitting: false,
+    });
+    emitter.explode(12);
+    this.time.delayedCall(800, () => emitter.destroy());
   }
 
   addButton(x, y, label, color, onClick) {

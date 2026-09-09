@@ -34,9 +34,10 @@ export class HubScene extends Phaser.Scene {
     this.add
       .rectangle(width - 90, 32, 140, 40, 0x1a1a2e)
       .setStrokeStyle(2, 0xf6e05e);
+    this.add.image(width - 145, 32, 'decorCoin').setScale(1.4);
     this.currencyText = this.add
-      .text(width - 90, 32, `⭐ ${save.currency}`, { fontSize: '16px', color: '#ffffff', fontFamily: TEXT_FONT })
-      .setOrigin(0.5);
+      .text(width - 125, 32, `${save.currency}`, { fontSize: '16px', color: '#ffffff', fontFamily: TEXT_FONT })
+      .setOrigin(0, 0.5);
 
     this.buildMuteButton(50, 32);
     this.buildStageList(width, 130, save);
@@ -185,7 +186,7 @@ export class HubScene extends Phaser.Scene {
       label.setText(item.cost === 0 ? '기본' : owned ? '보유' : `⭐ ${item.cost}`);
     });
     if (this.currencyText) {
-      this.currencyText.setText(`⭐ ${save.currency}`);
+      this.currencyText.setText(`${save.currency}`);
     }
   }
 }

@@ -13,6 +13,17 @@ export class TitleScene extends Phaser.Scene {
     const { width, height } = this.scale;
 
     this.add.rectangle(width / 2, height / 2, width, height, 0x111122);
+    this.add.tileSprite(width / 2, height / 2, width, height, 'floor').setAlpha(0.12);
+
+    const hero = this.add.image(width / 2, height / 2 - 160, 'player').setScale(3);
+    this.tweens.add({
+      targets: hero,
+      scaleY: 3 * 0.94,
+      duration: 500,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.InOut',
+    });
 
     const title = this.add
       .text(width / 2, height / 2 - 80, '수학 서바이버', {
@@ -31,8 +42,8 @@ export class TitleScene extends Phaser.Scene {
     });
 
     this.add
-      .text(width / 2, height / 2 - 30, '9까지의 수 · 여러 가지 모양', {
-        fontSize: '16px',
+      .text(width / 2, height / 2 - 30, '초등 1학년 수학 5개 단원과 함께 모험을 떠나요', {
+        fontSize: '15px',
         color: '#a0aec0',
         fontFamily: TEXT_FONT,
       })
