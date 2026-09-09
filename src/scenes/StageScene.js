@@ -477,9 +477,10 @@ export class StageScene extends Phaser.Scene {
     this.spawnTimer.paused = true;
     this.attackTimer.paused = true;
     this.difficultyTimer.paused = true;
-    const question = generateQuestionForUnit(this.unitId, this.getDifficultyForLevel());
+    const difficulty = this.getDifficultyForLevel();
+    const question = generateQuestionForUnit(this.unitId, difficulty);
     this.pendingUpgradeType = this.pickUpgradeType();
-    this.scene.launch('Question', { question, upgradeType: this.pendingUpgradeType });
+    this.scene.launch('Question', { question, upgradeType: this.pendingUpgradeType, difficulty });
   }
 
   // 스테이지 초반(레벨 0-2)은 쉬움, 중반(3-6)은 보통, 후반(7+)은 어려움 -

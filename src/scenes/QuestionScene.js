@@ -8,6 +8,12 @@ const UPGRADE_LABELS = {
   multishot: '다중 사격',
 };
 
+const UPGRADE_ICONS = {
+  speed: '⚡',
+  range: '🏹',
+  multishot: '🎯',
+};
+
 export class QuestionScene extends Phaser.Scene {
   constructor() {
     super('Question');
@@ -16,6 +22,7 @@ export class QuestionScene extends Phaser.Scene {
   init(data) {
     this.question = data.question;
     this.upgradeType = data.upgradeType;
+    this.difficulty = data.difficulty ?? 1;
     this.answered = false;
   }
 
@@ -31,6 +38,14 @@ export class QuestionScene extends Phaser.Scene {
       .setAlpha(0);
     this.tweens.add({ targets: [panel, panelShadow], scale: 1, duration: 180, ease: 'Back.Out' });
     this.tweens.add({ targets: panel, alpha: 1, duration: 180, ease: 'Back.Out' });
+
+    const stars = '★'.repeat(this.difficulty + 1) + '☆'.repeat(2 - this.difficulty);
+    this.add
+      .text(width / 2 - 190, height / 2 - 125, stars, { fontSize: '14px', color: '#f6e05e', fontFamily: 'sans-serif' })
+      .setOrigin(0, 0.5);
+    this.add
+      .text(width / 2 + 190, height / 2 - 125, UPGRADE_ICONS[this.upgradeType] ?? '⚔️', { fontSize: '18px' })
+      .setOrigin(1, 0.5);
 
     if (this.question.type === 'comparison') {
       this.buttons = this.renderComparisonChoices(width, height);
