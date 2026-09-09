@@ -4,11 +4,28 @@ import { getSave } from '../systems/SaveManager.js';
 import { getCosmeticColor, DEFAULT_COSMETIC_ID } from '../data/cosmetics.js';
 import { playAttack, playHit, playLevelUp } from '../systems/SfxPlayer.js';
 
-// STAGE_DURATION_MS, the spawn interval(1200ms), and LEVEL_XP_THRESHOLDS are tuned together —
-// raising the stage duration without extending this list means questions stop appearing
-// long before the stage ends.
-const LEVEL_XP_THRESHOLDS = [5, 10, 16, 23, 31, 40];
-const STAGE_DURATION_MS = 60000;
+// STAGE_DURATION_MS, the spawn-rate ramp, and LEVEL_XP_THRESHOLDS are tuned together —
+// raising the stage duration without extending the threshold table means questions stop
+// appearing long before the stage ends.
+function buildLevelThresholds(levelCount) {
+  const thresholds = [];
+  let cumulative = 0;
+  let gap = 5;
+  for (let i = 0; i < levelCount; i += 1) {
+    cumulative += gap;
+    thresholds.push(cumulative);
+    gap += 2;
+  }
+  return thresholds;
+}
+
+const LEVEL_XP_THRESHOLDS = buildLevelThresholds(20);
+// 목표 스테이지 길이: 4분 30초 (기획서 4~5분 목표)
+const STAGE_DURATION_MS = 270000;
+const SPAWN_DELAY_START_MS = 1200;
+const SPAWN_DELAY_FLOOR_MS = 500;
+const SPAWN_RAMP_STEP_MS = 100;
+const SPAWN_RAMP_INTERVAL_MS = 20000;
 // The arena is larger than the 800x600 viewport; the camera follows the player around it.
 const WORLD_WIDTH = 1600;
 const WORLD_HEIGHT = 1200;
@@ -55,7 +72,7 @@ export class StageScene extends Phaser.Scene {
     this.physics.add.overlap(this.player, this.enemies, this.handlePlayerHit, null, this);
 
     this.spawnTimer = this.time.addEvent({
-      delay: 1200,
+      delay: SPAWN_DELAY_START_MS,
       loop: true,
       callback: this.spawnEnemy,
       callbackScope: this,
@@ -65,6 +82,13 @@ export class StageScene extends Phaser.Scene {
       delay: this.attackIntervalMs,
       loop: true,
       callback: this.performAutoAttack,
+      callbackScope: this,
+    });
+
+    this.difficultyTimer = this.time.addEvent({
+      delay: SPAWN_RAMP_INTERVAL_MS,
+      loop: true,
+      callback: this.rampDifficulty,
       callbackScope: this,
     });
 
@@ -248,6 +272,7 @@ export class StageScene extends Phaser.Scene {
     this.physics.pause();
     this.spawnTimer.paused = true;
     this.attackTimer.paused = true;
+    this.difficultyTimer.paused = true;
     const question = generateQuestionForUnit(this.unitId);
     this.scene.launch('Question', { question });
   }
@@ -269,15 +294,21 @@ export class StageScene extends Phaser.Scene {
     this.physics.resume();
     this.spawnTimer.paused = false;
     this.attackTimer.paused = false;
+    this.difficultyTimer.paused = false;
   }
 
   handlePlayerHit(player, enemy) {
     this.handleEnemyDefeated(enemy);
   }
 
+  rampDifficulty() {
+    this.spawnTimer.delay = Math.max(SPAWN_DELAY_FLOOR_MS, this.spawnTimer.delay - SPAWN_RAMP_STEP_MS);
+  }
+
   finishStage() {
     this.spawnTimer.remove();
     this.attackTimer.remove();
+    this.difficultyTimer.remove();
     const accuracy = this.totalQuestions === 0 ? 0 : this.correctAnswers / this.totalQuestions;
     this.scene.start('Result', {
       unitId: this.unitId,
