@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { generateCountObjectsQuestion } from '../systems/QuestionEngine.js';
+import { generateQuestionForUnit } from '../systems/QuestionEngine.js';
 import { getSave } from '../systems/SaveManager.js';
 import { getCosmeticColor, DEFAULT_COSMETIC_ID } from '../data/cosmetics.js';
 import { playAttack, playHit, playLevelUp } from '../systems/SfxPlayer.js';
@@ -238,7 +238,7 @@ export class StageScene extends Phaser.Scene {
     this.physics.pause();
     this.spawnTimer.paused = true;
     this.attackTimer.paused = true;
-    const question = generateCountObjectsQuestion();
+    const question = generateQuestionForUnit(this.unitId);
     this.scene.launch('Question', { question });
   }
 

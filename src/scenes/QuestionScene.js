@@ -22,23 +22,18 @@ export class QuestionScene extends Phaser.Scene {
       .setAlpha(0);
     this.tweens.add({ targets: panel, scale: 1, alpha: 1, duration: 180, ease: 'Back.Out' });
 
-    this.add
-      .text(width / 2, height / 2 - 100, '🍎'.repeat(this.question.promptCount), {
-        fontSize: '32px',
-      })
-      .setOrigin(0.5);
+    this.renderPrompt(width, height);
 
     const startX = width / 2 - 120;
     this.buttons = this.question.choices.map((choice, index) => {
       const x = startX + index * 120;
+      const y = height / 2 + 40;
       const rectangle = this.add
-        .rectangle(x, height / 2 + 40, 90, 70, 0x2b2b40)
+        .rectangle(x, y, 90, 70, 0x2b2b40)
         .setStrokeStyle(2, 0xffffff)
         .setInteractive({ useHandCursor: true });
 
-      this.add
-        .text(x, height / 2 + 40, String(choice.value), { fontSize: '28px', fontFamily: 'sans-serif' })
-        .setOrigin(0.5);
+      this.renderChoiceContent(x, y, choice);
 
       rectangle.on('pointerover', () => {
         if (this.answered) return;
@@ -55,6 +50,43 @@ export class QuestionScene extends Phaser.Scene {
 
       return { rectangle, choice };
     });
+  }
+
+  renderPrompt(width, height) {
+    const promptY = height / 2 - 100;
+    if (this.question.type === 'shape_match') {
+      this.add
+        .text(width / 2, promptY - 30, '같은 모양을 찾아요', { fontSize: '14px', color: '#a0aec0', fontFamily: 'sans-serif' })
+        .setOrigin(0.5);
+      this.drawShape(width / 2, promptY + 15, this.question.targetShape, 50, 0xf6e05e);
+    } else {
+      this.add
+        .text(width / 2, promptY, '🍎'.repeat(this.question.promptCount), { fontSize: '32px' })
+        .setOrigin(0.5);
+    }
+  }
+
+  renderChoiceContent(x, y, choice) {
+    if (this.question.type === 'shape_match') {
+      this.drawShape(x, y, choice.value, 32, 0xffffff);
+    } else {
+      this.add
+        .text(x, y, String(choice.value), { fontSize: '28px', fontFamily: 'sans-serif' })
+        .setOrigin(0.5);
+    }
+  }
+
+  drawShape(x, y, shapeType, size, color) {
+    const graphics = this.add.graphics();
+    graphics.fillStyle(color, 1);
+    if (shapeType === 'circle') {
+      graphics.fillCircle(x, y, size / 2);
+    } else if (shapeType === 'square') {
+      graphics.fillRect(x - size / 2, y - size / 2, size, size);
+    } else if (shapeType === 'triangle') {
+      graphics.fillTriangle(x, y - size / 2, x - size / 2, y + size / 2, x + size / 2, y + size / 2);
+    }
+    return graphics;
   }
 
   showResult(selected) {
