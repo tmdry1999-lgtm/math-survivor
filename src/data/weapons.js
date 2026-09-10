@@ -8,6 +8,7 @@ export const WEAPON_DEFS = {
   arrow: {
     label: '화살',
     icon: '🏹',
+    texture: 'weaponDagger',
     behavior: 'homing',
     color: 0xf6e05e,
     base: { interval: 700, range: 90 },
@@ -17,6 +18,7 @@ export const WEAPON_DEFS = {
   magicOrb: {
     label: '마법 구슬',
     icon: '🔮',
+    texture: 'weaponGem',
     behavior: 'homing',
     color: 0x9f7aea,
     base: { interval: 750, range: 100 },
@@ -26,6 +28,7 @@ export const WEAPON_DEFS = {
   spear: {
     label: '창',
     icon: '🔱',
+    texture: 'weaponSword',
     behavior: 'pierce',
     color: 0xcbd5e0,
     base: { interval: 1000, range: 140, corridor: 24 },
@@ -35,6 +38,7 @@ export const WEAPON_DEFS = {
   iceSpear: {
     label: '얼음창',
     icon: '❄️',
+    texture: 'weaponSword2',
     behavior: 'pierce',
     color: 0x63b3ed,
     base: { interval: 1050, range: 150, corridor: 24 },
@@ -44,8 +48,9 @@ export const WEAPON_DEFS = {
   fireball: {
     label: '불덩이',
     icon: '🔥',
+    texture: 'weaponPotionRed',
     behavior: 'aoe',
-    color: 0xf56565,
+    color: 0xffffff,
     base: { interval: 1100, range: 130, radius: 40 },
     perLevel: { interval: -130, range: 10, radius: 15 },
     min: { interval: 650 },
@@ -53,6 +58,7 @@ export const WEAPON_DEFS = {
   bomb: {
     label: '폭탄',
     icon: '💣',
+    texture: 'weaponPotionWhite',
     behavior: 'aoe',
     color: 0x4a5568,
     base: { interval: 1200, range: 130, radius: 45 },
@@ -62,8 +68,9 @@ export const WEAPON_DEFS = {
   spinAxe: {
     label: '회전 도끼',
     icon: '🪓',
+    texture: 'weaponAxeDouble',
     behavior: 'orbit',
-    color: 0xa0aec0,
+    color: 0xffffff,
     base: { interval: 1400, radius: 70 },
     perLevel: { interval: -150, radius: 15 },
     min: { interval: 800 },
@@ -71,6 +78,7 @@ export const WEAPON_DEFS = {
   whirlwind: {
     label: '회오리',
     icon: '🌀',
+    texture: 'weaponAxeSingle',
     behavior: 'orbit',
     color: 0x4fd1c5,
     base: { interval: 1500, radius: 75 },

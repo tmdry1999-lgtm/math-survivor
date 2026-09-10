@@ -10,6 +10,14 @@ import decorRubbleUrl from '../assets/sprites/decor-rubble.png';
 import decorTorchUrl from '../assets/sprites/decor-torch.png';
 import decorChestUrl from '../assets/sprites/decor-chest.png';
 import decorDresserUrl from '../assets/sprites/decor-dresser.png';
+import weaponDaggerUrl from '../assets/sprites/weapon-dagger.png';
+import weaponGemUrl from '../assets/sprites/weapon-gem.png';
+import weaponSwordUrl from '../assets/sprites/weapon-sword.png';
+import weaponSword2Url from '../assets/sprites/weapon-sword2.png';
+import weaponPotionRedUrl from '../assets/sprites/weapon-potion-red.png';
+import weaponPotionWhiteUrl from '../assets/sprites/weapon-potion-white.png';
+import weaponAxeDoubleUrl from '../assets/sprites/weapon-axe-double.png';
+import weaponAxeSingleUrl from '../assets/sprites/weapon-axe-single.png';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -28,6 +36,14 @@ export class BootScene extends Phaser.Scene {
     this.load.image('decorTorch', decorTorchUrl);
     this.load.image('decorChest', decorChestUrl);
     this.load.image('decorDresser', decorDresserUrl);
+    this.load.image('weaponDagger', weaponDaggerUrl);
+    this.load.image('weaponGem', weaponGemUrl);
+    this.load.image('weaponSword', weaponSwordUrl);
+    this.load.image('weaponSword2', weaponSword2Url);
+    this.load.image('weaponPotionRed', weaponPotionRedUrl);
+    this.load.image('weaponPotionWhite', weaponPotionWhiteUrl);
+    this.load.image('weaponAxeDouble', weaponAxeDoubleUrl);
+    this.load.image('weaponAxeSingle', weaponAxeSingleUrl);
   }
 
   create() {

@@ -119,8 +119,15 @@ export class StageScene extends Phaser.Scene {
     });
 
     this.events.on('question-answered', this.onQuestionAnswered, this);
+    this.events.on('resume-game', this.resumeGameplay, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.events.off('question-answered', this.onQuestionAnswered, this);
+      this.events.off('resume-game', this.resumeGameplay, this);
+    });
+
+    this.input.keyboard.on('keydown-ESC', () => {
+      if (this.isPaused) return;
+      this.openPauseMenu();
     });
 
     this.killCount = 0;
@@ -131,6 +138,29 @@ export class StageScene extends Phaser.Scene {
     this.acquireWeapon('arrow');
 
     this.buildVirtualJoystick();
+  }
+
+  buildPauseButton() {
+    const x = this.scale.width - 34;
+    const y = this.scale.height - 34;
+    const background = this.add
+      .circle(x, y, 22, 0x1a1a2e, 0.8)
+      .setStrokeStyle(2, 0xf6e05e)
+      .setScrollFactor(0)
+      .setDepth(20)
+      .setInteractive({ useHandCursor: true });
+    this.add
+      .text(x, y, '⏸️', { fontSize: '16px' })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(21);
+
+    background.on('pointerover', () => background.setScale(1.08));
+    background.on('pointerout', () => background.setScale(1));
+    background.on('pointerdown', () => {
+      if (this.isPaused) return;
+      this.openPauseMenu();
+    });
   }
 
   buildVirtualJoystick() {
@@ -280,6 +310,7 @@ export class StageScene extends Phaser.Scene {
     const textStyle = { fontSize: '15px', color: '#ffffff', fontFamily: 'sans-serif' };
 
     this.add.rectangle(400, 26, 800, 52, 0x000000, 0.55).setScrollFactor(0).setDepth(15);
+    this.buildPauseButton();
 
     this.add
       .rectangle(barX, 4, barWidth, 5, 0x000000, 0.5)
@@ -441,22 +472,27 @@ export class StageScene extends Phaser.Scene {
     const def = WEAPON_DEFS[weapon.id];
     if (def.behavior === 'homing') {
       const [target] = this.findNearestEnemies(1, stats.range);
-      if (target) this.fireHomingShot(target, def.color, weapon.evolved);
+      if (target) this.fireHomingShot(target, def, weapon.evolved);
     } else if (def.behavior === 'pierce') {
-      this.firePierceShot(stats, def.color, weapon.evolved);
+      this.firePierceShot(stats, def, weapon.evolved);
     } else if (def.behavior === 'aoe') {
       const [target] = this.findNearestEnemies(1, stats.range);
-      if (target) this.fireAoeShot(target, stats.radius, def.color, weapon.evolved);
+      if (target) this.fireAoeShot(target, stats.radius, def, weapon.evolved);
     } else if (def.behavior === 'orbit') {
-      this.fireOrbitPulse(stats.radius, def.color, weapon.evolved);
+      this.fireOrbitPulse(stats.radius, def, weapon.evolved);
     }
   }
 
-  fireHomingShot(targetEnemy, color, evolved) {
+  fireHomingShot(targetEnemy, def, evolved) {
     playAttack();
-    const projectile = this.add.circle(this.player.x, this.player.y, evolved ? 7 : 5, color, 1);
     const targetX = targetEnemy.x;
     const targetY = targetEnemy.y;
+    const angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, targetX, targetY);
+    const projectile = this.add
+      .image(this.player.x, this.player.y, def.texture)
+      .setTint(def.color)
+      .setScale(evolved ? 2 : 1.5)
+      .setRotation(angle + Math.PI / 4);
     const travelDistance = Phaser.Math.Distance.Between(this.player.x, this.player.y, targetX, targetY);
     const duration = Phaser.Math.Clamp(travelDistance * 1.2, 60, 180);
 
@@ -475,7 +511,7 @@ export class StageScene extends Phaser.Scene {
     });
   }
 
-  firePierceShot(stats, color, evolved) {
+  firePierceShot(stats, def, evolved) {
     const [nearest] = this.findNearestEnemies(1, stats.range);
     if (!nearest) return;
     playAttack();
@@ -485,10 +521,24 @@ export class StageScene extends Phaser.Scene {
     const endY = this.player.y + Math.sin(angle) * stats.range;
 
     const streak = this.add
-      .line(0, 0, this.player.x, this.player.y, endX, endY, color, 1)
-      .setLineWidth(evolved ? 6 : 4)
+      .line(0, 0, this.player.x, this.player.y, endX, endY, def.color, 0.5)
+      .setLineWidth(evolved ? 5 : 3)
       .setOrigin(0, 0);
-    this.tweens.add({ targets: streak, alpha: 0, duration: 200, onComplete: () => streak.destroy() });
+    this.tweens.add({ targets: streak, alpha: 0, duration: 220, onComplete: () => streak.destroy() });
+
+    // 칼 스프라이트가 사거리 끝까지 재빨리 미끄러지듯 지나가는 연출(적중 판정은 즉시 계산됨).
+    const blade = this.add
+      .image(this.player.x, this.player.y, def.texture)
+      .setTint(def.color)
+      .setScale(evolved ? 1.8 : 1.4)
+      .setRotation(angle + Math.PI / 4);
+    this.tweens.add({
+      targets: blade,
+      x: endX,
+      y: endY,
+      duration: 180,
+      onComplete: () => blade.destroy(),
+    });
 
     const dx = endX - this.player.x;
     const dy = endY - this.player.y;
@@ -504,11 +554,16 @@ export class StageScene extends Phaser.Scene {
     });
   }
 
-  fireAoeShot(targetEnemy, radius, color, evolved) {
+  fireAoeShot(targetEnemy, radius, def, evolved) {
     playAttack();
-    const projectile = this.add.circle(this.player.x, this.player.y, evolved ? 8 : 6, color, 1);
     const targetX = targetEnemy.x;
     const targetY = targetEnemy.y;
+    const angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, targetX, targetY);
+    const projectile = this.add
+      .image(this.player.x, this.player.y, def.texture)
+      .setTint(def.color)
+      .setScale(evolved ? 1.9 : 1.5)
+      .setRotation(angle);
     const travelDistance = Phaser.Math.Distance.Between(this.player.x, this.player.y, targetX, targetY);
     const duration = Phaser.Math.Clamp(travelDistance * 1.2, 80, 220);
 
@@ -516,10 +571,11 @@ export class StageScene extends Phaser.Scene {
       targets: projectile,
       x: targetX,
       y: targetY,
+      rotation: angle + Math.PI * 2,
       duration,
       onComplete: () => {
         projectile.destroy();
-        this.explodeAt(targetX, targetY, radius, color);
+        this.explodeAt(targetX, targetY, radius, def.color);
       },
     });
   }
@@ -536,12 +592,24 @@ export class StageScene extends Phaser.Scene {
     });
   }
 
-  fireOrbitPulse(radius, color, evolved) {
+  fireOrbitPulse(radius, def, evolved) {
     playAttack();
     const ring = this.add
-      .circle(this.player.x, this.player.y, 6, color, evolved ? 0.45 : 0.3)
-      .setStrokeStyle(evolved ? 3 : 2, color, 0.8);
+      .circle(this.player.x, this.player.y, 6, def.color, evolved ? 0.35 : 0.22)
+      .setStrokeStyle(evolved ? 3 : 2, def.color, 0.8);
     this.tweens.add({ targets: ring, radius, alpha: 0, duration: 300, onComplete: () => ring.destroy() });
+
+    // 무기 아이콘이 플레이어 주위를 한 바퀴 휙 돌며 판정 범위를 눈으로 보여준다.
+    const icon = this.add
+      .image(this.player.x, this.player.y - radius * 0.6, def.texture)
+      .setTint(def.color)
+      .setScale(evolved ? 1.7 : 1.3);
+    this.tweens.add({
+      targets: icon,
+      angle: 360,
+      duration: 300,
+      onComplete: () => icon.destroy(),
+    });
 
     [...this.enemies.getChildren()].forEach((enemy) => {
       if (!enemy.active) return;
@@ -593,13 +661,29 @@ export class StageScene extends Phaser.Scene {
     }
   }
 
-  openQuestion() {
-    playLevelUp();
-    this.cameras.main.flash(150, 246, 224, 94);
+  pauseGameplay() {
     this.isPaused = true;
     this.physics.pause();
     this.spawnTimer.paused = true;
     this.difficultyTimer.paused = true;
+  }
+
+  resumeGameplay() {
+    this.isPaused = false;
+    this.physics.resume();
+    this.spawnTimer.paused = false;
+    this.difficultyTimer.paused = false;
+  }
+
+  openPauseMenu() {
+    this.pauseGameplay();
+    this.scene.launch('Pause');
+  }
+
+  openQuestion() {
+    playLevelUp();
+    this.cameras.main.flash(150, 246, 224, 94);
+    this.pauseGameplay();
     const difficulty = this.getDifficultyForLevel();
     const question = generateQuestionForUnit(this.unitId, difficulty);
     this.pendingReward = this.planWeaponReward();
@@ -683,10 +767,7 @@ export class StageScene extends Phaser.Scene {
     }
     this.applyWeaponReward(this.pendingReward, isCorrect);
     this.scene.stop('Question');
-    this.isPaused = false;
-    this.physics.resume();
-    this.spawnTimer.paused = false;
-    this.difficultyTimer.paused = false;
+    this.resumeGameplay();
   }
 
   handlePlayerHit(player, enemy) {
