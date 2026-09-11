@@ -1,10 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import {
   generateCountObjectsQuestion,
+  generateNumberToCountQuestion,
   generateShapeMatchQuestion,
+  generateOddOneOutQuestion,
   generateAddSubQuestion,
+  generateMissingPartQuestion,
   generateComparisonQuestion,
+  generateCompareThreeQuestion,
   generateNumberSequenceQuestion,
+  generateCompareNumbersQuestion,
   generateQuestionForUnit,
 } from '../src/systems/QuestionEngine.js';
 
@@ -75,6 +80,37 @@ describe('generateCountObjectsQuestion', () => {
   });
 });
 
+describe('generateNumberToCountQuestion', () => {
+  it('returns exactly 3 choices with exactly one correct answer', () => {
+    const question = generateNumberToCountQuestion();
+    expect(question.choices).toHaveLength(3);
+    expect(question.choices.filter((choice) => choice.isCorrect)).toHaveLength(1);
+  });
+
+  it('the correct choice value matches targetNumber', () => {
+    for (let i = 0; i < 50; i += 1) {
+      const question = generateNumberToCountQuestion();
+      const correct = question.choices.find((choice) => choice.isCorrect);
+      expect(correct.value).toBe(question.targetNumber);
+    }
+  });
+
+  it('targetNumber stays within 1 and 9', () => {
+    for (let i = 0; i < 50; i += 1) {
+      const question = generateNumberToCountQuestion();
+      expect(question.targetNumber).toBeGreaterThanOrEqual(1);
+      expect(question.targetNumber).toBeLessThanOrEqual(9);
+    }
+  });
+
+  it('difficulty 0 keeps targetNumber to 5 or below (easy)', () => {
+    for (let i = 0; i < 50; i += 1) {
+      const question = generateNumberToCountQuestion(0);
+      expect(question.targetNumber).toBeLessThanOrEqual(5);
+    }
+  });
+});
+
 describe('generateShapeMatchQuestion', () => {
   it('returns exactly 3 choices with exactly one correct answer', () => {
     const question = generateShapeMatchQuestion();
@@ -93,6 +129,24 @@ describe('generateShapeMatchQuestion', () => {
       const question = generateShapeMatchQuestion();
       const values = question.choices.map((choice) => choice.value).sort();
       expect(values).toEqual(['circle', 'square', 'triangle']);
+    }
+  });
+});
+
+describe('generateOddOneOutQuestion', () => {
+  it('returns exactly 4 choices with exactly one correct answer', () => {
+    const question = generateOddOneOutQuestion();
+    expect(question.choices).toHaveLength(4);
+    expect(question.choices.filter((choice) => choice.isCorrect)).toHaveLength(1);
+  });
+
+  it('the three wrong choices all share the same shape, distinct from the correct one', () => {
+    for (let i = 0; i < 30; i += 1) {
+      const question = generateOddOneOutQuestion();
+      const wrongShapes = question.choices.filter((choice) => !choice.isCorrect).map((choice) => choice.value);
+      const correctShape = question.choices.find((choice) => choice.isCorrect).value;
+      expect(new Set(wrongShapes).size).toBe(1);
+      expect(wrongShapes[0]).not.toBe(correctShape);
     }
   });
 });
@@ -135,6 +189,37 @@ describe('generateAddSubQuestion', () => {
   });
 });
 
+describe('generateMissingPartQuestion', () => {
+  it('returns exactly 3 choices with exactly one correct answer', () => {
+    const question = generateMissingPartQuestion();
+    expect(question.choices).toHaveLength(3);
+    expect(question.choices.filter((choice) => choice.isCorrect)).toHaveLength(1);
+  });
+
+  it('the correct choice equals total - knownPart', () => {
+    for (let i = 0; i < 50; i += 1) {
+      const question = generateMissingPartQuestion();
+      const correct = question.choices.find((choice) => choice.isCorrect);
+      expect(correct.value).toBe(question.total - question.knownPart);
+    }
+  });
+
+  it('knownPart is always strictly between 0 and total (a real missing-part puzzle)', () => {
+    for (let i = 0; i < 50; i += 1) {
+      const question = generateMissingPartQuestion();
+      expect(question.knownPart).toBeGreaterThan(0);
+      expect(question.knownPart).toBeLessThan(question.total);
+    }
+  });
+
+  it('difficulty 0 keeps total to 5 or below (easy)', () => {
+    for (let i = 0; i < 50; i += 1) {
+      const question = generateMissingPartQuestion(0);
+      expect(question.total).toBeLessThanOrEqual(5);
+    }
+  });
+});
+
 describe('generateComparisonQuestion', () => {
   it('returns exactly 2 choices with exactly one correct answer', () => {
     const question = generateComparisonQuestion();
@@ -142,12 +227,14 @@ describe('generateComparisonQuestion', () => {
     expect(question.choices.filter((choice) => choice.isCorrect)).toHaveLength(1);
   });
 
-  it('marks "left" correct when leftCount is greater, "right" otherwise', () => {
+  it('marks the side matching askMore (more when true, fewer when false)', () => {
     for (let i = 0; i < 50; i += 1) {
       const question = generateComparisonQuestion();
       const correct = question.choices.find((choice) => choice.isCorrect);
-      const expectedSide = question.leftCount > question.rightCount ? 'left' : 'right';
-      expect(correct.value).toBe(expectedSide);
+      const leftWins = question.askMore
+        ? question.leftCount > question.rightCount
+        : question.leftCount < question.rightCount;
+      expect(correct.value).toBe(leftWins ? 'left' : 'right');
     }
   });
 
@@ -169,6 +256,32 @@ describe('generateComparisonQuestion', () => {
     for (let i = 0; i < 50; i += 1) {
       const question = generateComparisonQuestion(2);
       expect(Math.abs(question.leftCount - question.rightCount)).toBe(1);
+    }
+  });
+});
+
+describe('generateCompareThreeQuestion', () => {
+  it('returns exactly 3 choices with exactly one correct answer', () => {
+    const question = generateCompareThreeQuestion();
+    expect(question.choices).toHaveLength(3);
+    expect(question.choices.filter((choice) => choice.isCorrect)).toHaveLength(1);
+  });
+
+  it('all three counts are distinct', () => {
+    for (let i = 0; i < 50; i += 1) {
+      const question = generateCompareThreeQuestion();
+      const counts = question.choices.map((choice) => choice.count);
+      expect(new Set(counts).size).toBe(3);
+    }
+  });
+
+  it('marks the max count correct when askMore, the min count correct otherwise', () => {
+    for (let i = 0; i < 50; i += 1) {
+      const question = generateCompareThreeQuestion();
+      const counts = question.choices.map((choice) => choice.count);
+      const target = question.askMore ? Math.max(...counts) : Math.min(...counts);
+      const correct = question.choices.find((choice) => choice.isCorrect);
+      expect(correct.count).toBe(target);
     }
   });
 });
@@ -204,30 +317,68 @@ describe('generateNumberSequenceQuestion', () => {
   });
 });
 
+describe('generateCompareNumbersQuestion', () => {
+  it('returns exactly 2 choices with exactly one correct answer', () => {
+    const question = generateCompareNumbersQuestion();
+    expect(question.choices).toHaveLength(2);
+    expect(question.choices.filter((choice) => choice.isCorrect)).toHaveLength(1);
+  });
+
+  it('never generates two equal numbers', () => {
+    for (let i = 0; i < 50; i += 1) {
+      const question = generateCompareNumbersQuestion();
+      expect(question.leftNumber).not.toBe(question.rightNumber);
+    }
+  });
+
+  it('marks the side matching askMore (more when true, fewer when false)', () => {
+    for (let i = 0; i < 50; i += 1) {
+      const question = generateCompareNumbersQuestion();
+      const correct = question.choices.find((choice) => choice.isCorrect);
+      const leftWins = question.askMore
+        ? question.leftNumber > question.rightNumber
+        : question.leftNumber < question.rightNumber;
+      expect(correct.value).toBe(leftWins ? 'left' : 'right');
+    }
+  });
+
+  it('difficulty 0 keeps both numbers to 20 or below (easy)', () => {
+    for (let i = 0; i < 50; i += 1) {
+      const question = generateCompareNumbersQuestion(0);
+      expect(question.leftNumber).toBeLessThanOrEqual(20);
+      expect(question.rightNumber).toBeLessThanOrEqual(20);
+    }
+  });
+
+  it('stays within 1-50 at the default difficulty', () => {
+    for (let i = 0; i < 50; i += 1) {
+      const question = generateCompareNumbersQuestion();
+      expect(question.leftNumber).toBeLessThanOrEqual(50);
+      expect(question.rightNumber).toBeLessThanOrEqual(50);
+    }
+  });
+});
+
 describe('generateQuestionForUnit', () => {
-  it('routes nums_within_9 to a count_objects question', () => {
-    const question = generateQuestionForUnit('nums_within_9');
-    expect(question.type).toBe('count_objects');
-  });
+  const unitTypes = {
+    nums_within_9: ['count_objects', 'number_to_count'],
+    shapes_2d: ['shape_match', 'odd_one_out'],
+    add_sub_within_9: ['equation', 'missing_part'],
+    comparison: ['comparison', 'compare_three'],
+    nums_within_50: ['number_sequence', 'compare_numbers'],
+  };
 
-  it('routes shapes_2d to a shape_match question', () => {
-    const question = generateQuestionForUnit('shapes_2d');
-    expect(question.type).toBe('shape_match');
-  });
-
-  it('routes add_sub_within_9 to an equation question', () => {
-    const question = generateQuestionForUnit('add_sub_within_9');
-    expect(question.type).toBe('equation');
-  });
-
-  it('routes comparison to a comparison question', () => {
-    const question = generateQuestionForUnit('comparison');
-    expect(question.type).toBe('comparison');
-  });
-
-  it('routes nums_within_50 to a number_sequence question', () => {
-    const question = generateQuestionForUnit('nums_within_50');
-    expect(question.type).toBe('number_sequence');
+  Object.entries(unitTypes).forEach(([unitId, validTypes]) => {
+    it(`routes ${unitId} to one of its known question types every time, and uses more than one`, () => {
+      const seenTypes = new Set();
+      for (let i = 0; i < 40; i += 1) {
+        const question = generateQuestionForUnit(unitId);
+        expect(validTypes).toContain(question.type);
+        seenTypes.add(question.type);
+      }
+      // 40번 뽑았는데 한 유형만 나왔다면 사실상 무작위 선택이 아니라는 뜻이므로 실패해야 한다.
+      expect(seenTypes.size).toBeGreaterThan(1);
+    });
   });
 
   it('falls back to count_objects for an unknown unit id', () => {
@@ -235,10 +386,11 @@ describe('generateQuestionForUnit', () => {
     expect(question.type).toBe('count_objects');
   });
 
-  it('forwards the difficulty argument to the underlying generator', () => {
+  it('forwards the difficulty argument to whichever generator is chosen for nums_within_9', () => {
     for (let i = 0; i < 50; i += 1) {
       const question = generateQuestionForUnit('nums_within_9', 0);
-      expect(question.promptCount).toBeLessThanOrEqual(5);
+      const value = question.type === 'count_objects' ? question.promptCount : question.targetNumber;
+      expect(value).toBeLessThanOrEqual(5);
     }
   });
 });
