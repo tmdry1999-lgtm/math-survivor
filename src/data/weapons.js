@@ -1,3 +1,6 @@
+// 이 파일은 게임에 등장하는 8가지 무기의 설정값(이름, 아이콘, 공격 방식, 발사 간격,
+// 사거리 등)을 모아둔 데이터입니다. 4가지 공격 방식(유도탄/관통/폭발/회전)에
+// 각각 2종씩 다른 그림과 색을 입혀 8종처럼 보이게 만들었습니다.
 // 8 weapons built from 4 distinct attack behaviors (2 reskins each), so the combat code
 // stays manageable while the player still sees real variety. No weapon does "damage" —
 // every hit is a one-shot kill, matching the rest of the game's no-HP design; leveling a
@@ -87,8 +90,10 @@ export const WEAPON_DEFS = {
   },
 };
 
+// 위에 정의된 무기 id들만 모아둔 목록 (예: ['arrow', 'magicOrb', ...]).
 export const WEAPON_IDS = Object.keys(WEAPON_DEFS);
 
+// 무기의 현재 레벨에 맞는 실제 발사 간격/사거리 등을 계산해서 돌려준다.
 // level 1 = base stats, each additional level adds one perLevel step, clamped at `min`.
 export function getWeaponStats(weaponId, level) {
   const def = WEAPON_DEFS[weaponId];

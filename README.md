@@ -9,16 +9,18 @@
 
 ## 프로젝트 구조
 
+프로그래밍을 모르셔도 이해하실 수 있도록 각 폴더가 담당하는 역할을 쉬운 말로 풀어두었습니다.
+
 ```
 src/
-  main.js              # Phaser 게임 부트스트랩
-  scenes/              # BootScene, TitleScene, HubScene, StageScene, QuestionScene, PauseScene, ResultScene
-  systems/             # QuestionEngine(문제 생성), SaveManager(저장), SfxPlayer(효과음)
-  data/                # units.js(단원 정의), weapons.js(무기), cosmetics.js(허브 꾸미기)
-  ui/                  # panelStyle.js(공용 UI 패널 스타일)
-  assets/sprites/      # 캐릭터/적/무기/데코 픽셀 아트
+  main.js              # 게임을 켜는 "전원 버튼" - 화면 크기 등 기본 설정을 정하고 게임을 실행
+  scenes/              # 게임의 각 "화면"들 (제목 화면, 나의 방, 전투 화면, 문제 팝업, 일시정지, 결과 화면)
+  systems/             # 화면에 보이지 않는 뒷단 기능 (문제 자동 출제, 진행 상황 저장, 효과음/배경음악 재생)
+  data/                # 단원 목록, 무기 8종, 캐릭터 꾸미기 색상 같은 "게임 데이터표"
+  ui/                  # 여러 화면에서 공통으로 쓰는 버튼/패널 그림자 스타일
+  assets/sprites/      # 캐릭터/적/무기/장식 그림 파일(픽셀 아트)
 docs/design/           # 게임 기획서, 단원별 문제 설계 문서
-tests/                 # vitest 테스트
+tests/                 # 코드가 의도대로 동작하는지 자동으로 확인하는 테스트 코드
 ```
 
 ## 개발 히스토리로 본 요청 경향

@@ -4,6 +4,8 @@ import { addPanelShadow } from '../ui/panelStyle.js';
 
 const TEXT_FONT = 'sans-serif';
 
+// 게임 중 ESC 키나 일시정지 버튼을 누르면 전투 화면 위에 뜨는 일시정지 메뉴입니다.
+// "계속하기", 소리 켜기/끄기, "허브로 나가기" 버튼을 제공합니다.
 export class PauseScene extends Phaser.Scene {
   constructor() {
     super('Pause');
@@ -45,16 +47,19 @@ export class PauseScene extends Phaser.Scene {
     this.muteButton.label.setText(isMuted() ? '🔇 음소거 켬' : '🔊 음소거 끔');
   }
 
+  // 전투 화면에 "다시 진행해도 돼" 신호를 보내고 일시정지 메뉴를 닫는다.
   resumeGame() {
     this.scene.get('Stage').events.emit('resume-game');
     this.scene.stop();
   }
 
+  // 진행 중이던 전투를 완전히 그만두고 나의 방 화면으로 돌아간다.
   exitToHub() {
     this.scene.stop('Stage');
     this.scene.start('Hub');
   }
 
+  // 메뉴에 들어가는 버튼(그림자+배경+글씨)을 만들어주는 공용 도우미 함수.
   addButton(x, y, label, color, onClick) {
     addPanelShadow(this, x, y, 220, 44, 4);
     const background = this.add

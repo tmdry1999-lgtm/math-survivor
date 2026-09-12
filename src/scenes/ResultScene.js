@@ -5,11 +5,15 @@ import { addPanelShadow } from '../ui/panelStyle.js';
 
 const TEXT_FONT = 'sans-serif';
 
+// 스테이지 제한 시간이 끝난 뒤 보여주는 결과 화면입니다.
+// 정답률과 그에 따라 얻은 코인을 보여주고, 결과를 저장한 뒤 "다시 하기"나
+// "허브로 돌아가기"를 선택할 수 있게 합니다.
 export class ResultScene extends Phaser.Scene {
   constructor() {
     super('Result');
   }
 
+  // StageScene이 넘겨준 결과(정답률, 문제 수, 단원 id)를 저장한다.
   init(data) {
     this.resultData = data;
   }
@@ -19,6 +23,7 @@ export class ResultScene extends Phaser.Scene {
     const { width, height } = this.scale;
     const { accuracy, totalQuestions, unitId } = this.resultData;
 
+    // 문제를 한 번도 안 만난 경우(레벨업을 못 함)에는 별도의 안내 화면을 보여준다.
     if (totalQuestions === 0) {
       this.add
         .text(width / 2, height / 2 - 40, '문제를 만나지 못했어요!', { fontSize: '28px', color: '#f6e05e', fontFamily: TEXT_FONT })
@@ -64,9 +69,11 @@ export class ResultScene extends Phaser.Scene {
       this.scene.start('Hub');
     });
 
+    // 이번 결과를 브라우저에 저장해서 다음에 게임을 켜도 코인/진행 상황이 남아있게 한다.
     saveStageResult({ unitId, accuracy, currencyEarned });
   }
 
+  // 코인을 얻었을 때 화면에 코인이 튀어오르는 축하 효과를 보여준다.
   celebrateWithCoinBurst(x, y) {
     const emitter = this.add.particles(x, y, 'decorCoin', {
       speed: { min: 60, max: 140 },
@@ -81,6 +88,7 @@ export class ResultScene extends Phaser.Scene {
     this.time.delayedCall(800, () => emitter.destroy());
   }
 
+  // 결과 화면 버튼(그림자+배경+글씨)을 만들어주는 공용 도우미 함수.
   addButton(x, y, label, color, onClick) {
     addPanelShadow(this, x, y, 220, 44, 4);
     const background = this.add

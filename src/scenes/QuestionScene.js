@@ -5,11 +5,15 @@ import { addPanelShadow } from '../ui/panelStyle.js';
 const COMPARISON_TYPES = ['comparison', 'compare_three', 'compare_numbers'];
 const SHAPE_TYPES_FOR_CONTENT = ['shape_match', 'odd_one_out'];
 
+// 레벨업할 때마다 전투 화면 위에 겹쳐서 뜨는 "수학 문제 팝업"입니다.
+// 문제 종류(덧셈, 모양 찾기, 비교하기 등)에 따라 문제와 보기를 다르게 그려주고,
+// 사용자가 답을 고르면 맞았는지 알려준 뒤 전투 화면에 결과를 전달합니다.
 export class QuestionScene extends Phaser.Scene {
   constructor() {
     super('Question');
   }
 
+  // StageScene이 넘겨준 문제 데이터, 보상 아이콘, 난이도를 저장한다.
   init(data) {
     this.question = data.question;
     this.rewardIcon = data.rewardIcon ?? '⚔️';
@@ -38,6 +42,8 @@ export class QuestionScene extends Phaser.Scene {
       .text(width / 2 + 190, height / 2 - 125, this.rewardIcon, { fontSize: '18px' })
       .setOrigin(1, 0.5);
 
+    // 문제 유형이 "비교하기" 계열이면 좌우(또는 3개) 패널로, 그 외에는 문제 문구 +
+    // 아래쪽 보기 버튼 줄로 화면을 구성한다.
     if (COMPARISON_TYPES.includes(this.question.type)) {
       this.buttons = this.renderComparisonPanels(width, height);
     } else {
@@ -46,6 +52,7 @@ export class QuestionScene extends Phaser.Scene {
     }
   }
 
+  // 일반 문제용 보기 버튼들을 가로로 한 줄 나열해서 만든다.
   renderChoiceRow(width, height) {
     const choices = this.question.choices;
     const wide = choices.length >= 4;
@@ -82,6 +89,7 @@ export class QuestionScene extends Phaser.Scene {
     });
   }
 
+  // "비교하기" 계열 문제(더 많은 쪽/더 큰 수 고르기)용 좌우 패널을 만든다.
   renderComparisonPanels(width, height) {
     this.add
       .text(width / 2, height / 2 - 100, this.getComparisonHint(), {
@@ -132,6 +140,7 @@ export class QuestionScene extends Phaser.Scene {
     });
   }
 
+  // "더 큰 수를 골라요" 같은 안내 문구를 문제 종류/방향에 맞게 골라준다.
   getComparisonHint() {
     if (this.question.type === 'compare_numbers') {
       return this.question.askMore ? '더 큰 수를 골라요' : '더 작은 수를 골라요';
@@ -139,6 +148,7 @@ export class QuestionScene extends Phaser.Scene {
     return this.question.askMore ? '더 많은 쪽을 골라요' : '더 적은 쪽을 골라요';
   }
 
+  // 비교 패널 안에 보여줄 내용(숫자 또는 사과 그림 개수)을 만든다.
   getComparisonPanelContent(choice) {
     if (this.question.type === 'compare_numbers') {
       return choice.value === 'left' ? String(this.question.leftNumber) : String(this.question.rightNumber);
@@ -150,6 +160,7 @@ export class QuestionScene extends Phaser.Scene {
     return '🍎'.repeat(count);
   }
 
+  // 문제 종류에 따라 화면 위쪽에 문제 문구/그림/식을 그려준다.
   renderPrompt(width, height) {
     const promptY = height / 2 - 100;
     const type = this.question.type;
@@ -208,6 +219,7 @@ export class QuestionScene extends Phaser.Scene {
     }
   }
 
+  // 보기 버튼 안에 들어갈 내용(모양, 사과 그림, 숫자)을 문제 종류에 맞게 그려준다.
   renderChoiceContent(x, y, choice) {
     const type = this.question.type;
     if (SHAPE_TYPES_FOR_CONTENT.includes(type)) {
@@ -230,6 +242,7 @@ export class QuestionScene extends Phaser.Scene {
     }
   }
 
+  // 원/네모/세모 도형을 코드로 직접 그려준다.
   drawShape(x, y, shapeType, size, color) {
     const graphics = this.add.graphics();
     graphics.fillStyle(color, 1);
@@ -243,6 +256,8 @@ export class QuestionScene extends Phaser.Scene {
     return graphics;
   }
 
+  // 사용자가 고른 보기를 채점한다: 정답 버튼은 초록 테두리, 잘못 고른 버튼은 빨간
+  // 테두리로 표시하고, 효과음과 안내 문구를 보여준 뒤 잠시 후 전투 화면에 결과를 알린다.
   showResult(selected) {
     if (selected.isCorrect) {
       playCorrect();

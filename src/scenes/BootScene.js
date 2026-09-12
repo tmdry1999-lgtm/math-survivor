@@ -19,11 +19,16 @@ import weaponPotionWhiteUrl from '../assets/sprites/weapon-potion-white.png';
 import weaponAxeDoubleUrl from '../assets/sprites/weapon-axe-double.png';
 import weaponAxeSingleUrl from '../assets/sprites/weapon-axe-single.png';
 
+// 게임이 켜지자마자 가장 먼저 실행되는 "준비 화면"입니다.
+// 캐릭터, 적, 무기 등 게임에 필요한 그림 파일들을 미리 전부 불러온 뒤
+// 준비가 끝나면 바로 제목 화면(TitleScene)으로 넘어갑니다.
 export class BootScene extends Phaser.Scene {
   constructor() {
     super('Boot');
   }
 
+  // 필요한 모든 이미지 파일을 불러와 이름표('player', 'enemySlime' 등)를 붙여둔다.
+  // 이렇게 붙여둔 이름표는 다른 화면에서 this.add.image(x, y, '이름표')처럼 사용된다.
   preload() {
     this.load.image('player', playerUrl);
     this.load.image('enemySlime', enemySlimeUrl);
@@ -46,12 +51,16 @@ export class BootScene extends Phaser.Scene {
     this.load.image('weaponAxeSingle', weaponAxeSingleUrl);
   }
 
+  // 이미지 불러오기가 끝난 뒤 실행된다.
   create() {
-    // Reserved for a future pickup-orb mechanic; also reused as the hit-particle texture in StageScene.
+    // 작은 동그라미 그림을 코드로 직접 그려서 만든다(그림 파일 없이도 사용 가능).
+    // 나중에 적을 물리쳤을 때 튀는 반짝이 효과(파티클)로 재사용된다.
     this.createCircleTexture('xpOrb', 6, 0xf6e05e);
+    // 준비가 끝났으니 제목 화면으로 이동한다.
     this.scene.start('Title');
   }
 
+  // 지정한 색과 크기의 동그란 이미지를 즉석에서 만들어주는 도우미 함수.
   createCircleTexture(key, radius, color) {
     const graphics = this.add.graphics();
     graphics.fillStyle(color, 1);

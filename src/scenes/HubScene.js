@@ -12,6 +12,9 @@ const TEXT_FONT = 'sans-serif';
 const ALL_STAGES_UNLOCKED = true;
 const STAGE_GRID_COLS = 3;
 
+// "나의 작은 방"이라고 불리는 시작 기지 화면입니다.
+// 여기서 도전할 단원(스테이지)을 고르거나, 모은 코인으로 캐릭터 색을 바꾸는
+// 꾸미기 상점을 이용할 수 있습니다. 화면 상단에는 보유 코인이 표시됩니다.
 export class HubScene extends Phaser.Scene {
   constructor() {
     super('Hub');
@@ -46,11 +49,13 @@ export class HubScene extends Phaser.Scene {
     this.buildCosmeticShop(width / 2, 435, save);
   }
 
+  // 방 구석에 상자/서랍장 같은 배경 장식을 배치해 room 느낌을 낸다 (게임 진행에는 영향 없음).
   buildRoomDecor(width, height) {
     this.add.image(50, height - 50, 'decorChest').setScale(2.2).setAlpha(0.35).setDepth(-1);
     this.add.image(width - 50, height - 50, 'decorDresser').setScale(2.2).setAlpha(0.35).setDepth(-1);
   }
 
+  // 소리 켜기/끄기 버튼. 누를 때마다 스피커 아이콘이 🔊 ↔ 🔇로 바뀐다.
   buildMuteButton(x, y) {
     addPanelShadow(this, x, y, 44, 40, 3);
     const background = this.add
@@ -75,6 +80,8 @@ export class HubScene extends Phaser.Scene {
     });
   }
 
+  // 도전 가능한 단원들을 카드 형태로 격자(가로 3칸)에 나열한다.
+  // 각 카드에는 단원 이름, 이전 최고 정답률(또는 잠금 표시), "도전하기" 버튼이 들어간다.
   buildStageList(width, topY, save) {
     const cardWidth = 210;
     const cardHeight = 140;
@@ -144,6 +151,8 @@ export class HubScene extends Phaser.Scene {
     });
   }
 
+  // 캐릭터 색을 바꿔주는 "꾸미기" 상점. 색상 조각을 클릭하면 코인으로 구매하거나
+  // 이미 산 색이면 바로 착용한다.
   buildCosmeticShop(centerX, y, initialSave) {
     this.add
       .text(centerX, y - 45, '꾸미기', { fontSize: '18px', color: '#ffffff', fontFamily: TEXT_FONT })
@@ -186,6 +195,8 @@ export class HubScene extends Phaser.Scene {
     this.refreshCosmeticShop(updatedSave);
   }
 
+  // 현재 착용 중인 색에 금색 테두리를 표시하고, 각 색상 조각의 안내 문구
+  // ("기본" / "보유" / "가격")를 저장 데이터에 맞게 다시 그려준다.
   refreshCosmeticShop(save) {
     const equippedId = save.equippedCosmetics.playerColor ?? DEFAULT_COSMETIC_ID;
     this.cosmeticSwatches.forEach(({ item, ring, label }) => {

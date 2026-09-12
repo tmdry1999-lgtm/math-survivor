@@ -43,11 +43,16 @@ const MAX_WEAPONS = 4;
 // chance applies regardless of correct/wrong — only the follow-up effect differs by outcome.
 const NEW_WEAPON_CHANCE = 0.6;
 
+// 실제로 몰려오는 적을 자동공격으로 물리치며 살아남는 "전투 화면"입니다.
+// 방향키/WASD 또는 화면의 가상 조이스틱으로 캐릭터를 움직이고, 무기는 자동으로
+// 발사됩니다. 경험치(XP)가 차서 레벨업하면 수학 문제 화면이 뜨고, 맞히면 무기가
+// 더 강해집니다. 제한 시간이 다 되면 결과 화면으로 넘어갑니다.
 export class StageScene extends Phaser.Scene {
   constructor() {
     super('Stage');
   }
 
+  // 스테이지를 새로 시작할 때 점수/레벨/무기 등 상태값을 처음 상태로 초기화한다.
   init(data) {
     this.unitId = data.unitId;
     this.xp = 0;
@@ -62,6 +67,8 @@ export class StageScene extends Phaser.Scene {
     this.difficultyRampCount = 0;
   }
 
+  // 화면이 시작될 때 배경, 캐릭터, 적을 담을 그룹, 키보드 입력, 각종 타이머와
+  // 이벤트 리스너를 한 번에 세팅한다.
   create() {
     this.cameras.main.fadeIn(250, 17, 17, 34);
     this.buildBackground();
@@ -140,6 +147,7 @@ export class StageScene extends Phaser.Scene {
     this.buildVirtualJoystick();
   }
 
+  // 화면 오른쪽 아래에 떠 있는 일시정지(⏸️) 버튼.
   buildPauseButton() {
     const x = this.scale.width - 34;
     const y = this.scale.height - 34;
@@ -163,6 +171,8 @@ export class StageScene extends Phaser.Scene {
     });
   }
 
+  // 화면 왼쪽 아래에 스마트폰/태블릿용 가상 조이스틱(원 안의 손잡이)을 만든다.
+  // 손잡이를 누르고 드래그하면 그 방향으로 캐릭터가 움직인다.
   buildVirtualJoystick() {
     const baseX = 100;
     const baseY = this.scale.height - 100;
@@ -205,6 +215,8 @@ export class StageScene extends Phaser.Scene {
     });
   }
 
+  // 손가락(또는 마우스)이 조이스틱 중심에서 얼마나, 어느 방향으로 떨어져 있는지 계산해서
+  // 손잡이 위치를 옮기고, 그 방향/세기를 이동 방향 벡터(joystickVector)에 저장한다.
   updateJoystick(pointer) {
     const dx = pointer.x - this.joystickBaseX;
     const dy = pointer.y - this.joystickBaseY;
@@ -217,6 +229,7 @@ export class StageScene extends Phaser.Scene {
     this.joystickVector.set(Math.cos(angle), Math.sin(angle)).scale(distance / this.joystickBaseRadius);
   }
 
+  // 게임 무대(아레나)의 바닥, 얼룩무늬, 장식물, 사방 벽을 그린다.
   buildBackground() {
     this.add.tileSprite(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT, 'floor').setDepth(-10);
 
@@ -249,6 +262,8 @@ export class StageScene extends Phaser.Scene {
       .setDepth(-8);
   }
 
+  // 매 프레임(1초에 수십 번)마다 실행되는 게임의 심장박동 같은 함수.
+  // 남은 시간 계산, 캐릭터 이동, 적이 플레이어를 쫓아오게 하기, 무기 자동발사를 처리한다.
   update(time, delta) {
     if (this.isPaused) return;
 
@@ -293,6 +308,7 @@ export class StageScene extends Phaser.Scene {
     this.updateWeapons(delta);
   }
 
+  // 들고 있는 무기마다 남은 재장전 시간을 줄이고, 다 되면 자동으로 한 번 발사한다.
   updateWeapons(delta) {
     this.weapons.forEach((weapon) => {
       weapon.cooldownRemaining -= delta;
@@ -304,6 +320,8 @@ export class StageScene extends Phaser.Scene {
     });
   }
 
+  // 화면 위쪽 정보창(HUD)을 만든다: 경험치 바, 남은 시간 바, 레벨/처치 수/시간 글씨,
+  // 그리고 오른쪽에 늘어선 무기 아이콘 칸들.
   buildHud() {
     const barX = 20;
     const barWidth = 760;
@@ -376,6 +394,7 @@ export class StageScene extends Phaser.Scene {
     }
   }
 
+  // 매 프레임 정보창의 숫자와 막대 길이를 최신 상태로 다시 그려준다.
   updateHud() {
     const secondsLeft = Math.max(0, Math.ceil(this.remainingMs / 1000));
     const minutes = Math.floor(secondsLeft / 60);
@@ -408,12 +427,14 @@ export class StageScene extends Phaser.Scene {
     });
   }
 
+  // 나의 방(허브)에서 고른 캐릭터 색을 이 스테이지의 캐릭터에도 그대로 입혀준다.
   applyEquippedPlayerColor() {
     const save = getSave();
     const equippedId = save.equippedCosmetics.playerColor ?? DEFAULT_COSMETIC_ID;
     this.player.setTint(getCosmeticColor(equippedId));
   }
 
+  // 새 적을 등장시킬 타이밍이 되면 한 번에 몇 마리를 만들지 정해서 spawnOneEnemy를 반복 호출한다.
   spawnEnemy() {
     // 난이도 램프가 진행될수록 한 번에 여러 마리를 몰아서 스폰해 무리 지어 몰려오는
     // 느낌을 낸다 (spawnBatchSize는 rampDifficulty에서 점진적으로 늘어남).
@@ -425,6 +446,7 @@ export class StageScene extends Phaser.Scene {
     }
   }
 
+  // 화면 바깥쪽 보이지 않는 곳에서 적 한 마리를 나타나게 하고, 커지는 등장 애니메이션을 재생한다.
   spawnOneEnemy() {
     // Spawn in a ring just outside the visible camera area around the player, not fixed map edges —
     // the arena is much bigger than the viewport, so absolute-edge spawns would land far off-screen.
@@ -458,6 +480,8 @@ export class StageScene extends Phaser.Scene {
     });
   }
 
+  // 플레이어 기준으로 정해진 사거리(range) 안에 있는 적들 중 가장 가까운 순서로
+  // count 마리를 뽑아 돌려준다. (무기가 조준할 대상을 정할 때 사용)
   findNearestEnemies(count, range) {
     return this.enemies
       .getChildren()
@@ -468,6 +492,9 @@ export class StageScene extends Phaser.Scene {
       .map(({ enemy }) => enemy);
   }
 
+  // 무기 종류(behavior)에 따라 실제로 발사하는 방법을 다르게 골라준다.
+  // homing = 가까운 적 하나를 따라가는 유도탄, pierce = 일직선으로 관통하는 찌르기,
+  // aoe = 목표 지점에서 터지며 주변을 휩쓰는 폭발, orbit = 내 주변을 도는 공격.
   fireWeapon(weapon, stats) {
     const def = WEAPON_DEFS[weapon.id];
     if (def.behavior === 'homing') {
@@ -483,6 +510,7 @@ export class StageScene extends Phaser.Scene {
     }
   }
 
+  // 유도탄 무기(화살, 마법 구슬): 목표 적을 향해 투사체가 날아가고, 도착하면 처치한다.
   fireHomingShot(targetEnemy, def, evolved) {
     playAttack();
     const targetX = targetEnemy.x;
@@ -511,6 +539,8 @@ export class StageScene extends Phaser.Scene {
     });
   }
 
+  // 관통 무기(창, 얼음창): 플레이어 앞으로 일직선 경로를 그리고, 그 경로 위에 있는
+  // 적을 한꺼번에 모두 처치한다.
   firePierceShot(stats, def, evolved) {
     const [nearest] = this.findNearestEnemies(1, stats.range);
     if (!nearest) return;
@@ -554,6 +584,7 @@ export class StageScene extends Phaser.Scene {
     });
   }
 
+  // 폭발 무기(불덩이, 폭탄): 목표 지점까지 투사체가 날아간 뒤 그 자리에서 explodeAt으로 터진다.
   fireAoeShot(targetEnemy, radius, def, evolved) {
     playAttack();
     const targetX = targetEnemy.x;
@@ -580,6 +611,7 @@ export class StageScene extends Phaser.Scene {
     });
   }
 
+  // 지정한 위치에 둥근 폭발 효과를 그리고, 그 반경 안에 있는 적을 모두 처치한다.
   explodeAt(x, y, radius, color) {
     const ring = this.add.circle(x, y, 4, color, 0.5).setStrokeStyle(2, color, 1);
     this.tweens.add({ targets: ring, radius, alpha: 0, duration: 250, onComplete: () => ring.destroy() });
@@ -592,6 +624,8 @@ export class StageScene extends Phaser.Scene {
     });
   }
 
+  // 회전 무기(회전 도끼, 회오리): 나를 중심으로 원 모양 판정 범위가 한 번 퍼져나가며,
+  // 그 안에 있던 적을 모두 처치한다.
   fireOrbitPulse(radius, def, evolved) {
     playAttack();
     const ring = this.add
@@ -619,6 +653,8 @@ export class StageScene extends Phaser.Scene {
     });
   }
 
+  // 적 하나가 쓰러졌을 때: 효과음, 화면 흔들림, 번쩍임, 반짝이 파티클을 재생하고
+  // 처치 수를 늘린 뒤 경험치를 1 준다.
   handleEnemyDefeated(enemy) {
     playHit();
     this.cameras.main.shake(60, 0.003);
@@ -652,6 +688,7 @@ export class StageScene extends Phaser.Scene {
     this.time.delayedCall(300, () => emitter.destroy());
   }
 
+  // 경험치를 더하고, 다음 레벨업에 필요한 양을 넘으면 레벨을 올리고 문제 화면을 띄운다.
   gainXp(amount) {
     this.xp += amount;
     const threshold = LEVEL_XP_THRESHOLDS[this.level];
@@ -661,6 +698,8 @@ export class StageScene extends Phaser.Scene {
     }
   }
 
+  // 전투를 일시정지한다 (물리엔진 정지 + 적 스폰/난이도 타이머 정지). 문제 화면이 뜨거나
+  // ESC를 눌렀을 때 호출된다.
   pauseGameplay() {
     this.isPaused = true;
     this.physics.pause();
@@ -680,6 +719,8 @@ export class StageScene extends Phaser.Scene {
     this.scene.launch('Pause');
   }
 
+  // 레벨업 시 실행: 효과음/화면 번쩍임을 재생하고, 전투를 멈춘 뒤 이번에 받을 보상을
+  // 미리 정해서(planWeaponReward) 문제 화면을 띄운다.
   openQuestion() {
     playLevelUp();
     this.cameras.main.flash(150, 246, 224, 94);
@@ -722,6 +763,8 @@ export class StageScene extends Phaser.Scene {
     return { kind: 'levelup', weaponId: weapon.id };
   }
 
+  // 문제 화면에서 정답/오답 결과가 나오면 미리 정해둔 보상(planWeaponReward의 결과)을
+  // 실제로 적용한다. 정답이면 무기를 얻거나 레벨을 올리고, 오답이어도 아주 조금은 도움을 준다.
   applyWeaponReward(reward, isCorrect) {
     if (reward.kind === 'acquire') {
       this.acquireWeapon(reward.weaponId);
@@ -749,16 +792,20 @@ export class StageScene extends Phaser.Scene {
     }
   }
 
+  // 새 무기를 1레벨로 목록에 추가한다.
   acquireWeapon(weaponId) {
     this.weapons.push({ id: weaponId, level: 1, cooldownRemaining: 0, evolved: false });
   }
 
+  // 무기가 최고 레벨에 도달했을 때 "진화" 상태로 표시하고 화려한 효과를 보여준다.
   evolveWeapon(weapon) {
     weapon.evolved = true;
     playLevelUp();
     this.cameras.main.flash(200, 159, 122, 234);
   }
 
+  // 문제 화면에서 "정답/오답 결정됨" 신호를 받으면 보상을 적용하고 문제 화면을 닫은 뒤
+  // 전투를 다시 이어간다.
   onQuestionAnswered({ isCorrect }) {
     if (!this.isPaused) return;
     this.totalQuestions += 1;
@@ -770,10 +817,12 @@ export class StageScene extends Phaser.Scene {
     this.resumeGameplay();
   }
 
+  // 플레이어가 적과 몸으로 부딪혔을 때도 공격이 닿은 것처럼 적을 처치한다.
   handlePlayerHit(player, enemy) {
     this.handleEnemyDefeated(enemy);
   }
 
+  // 20초마다 실행되어 적 등장 속도를 점점 빠르게 만들어 게임을 서서히 어렵게 한다.
   rampDifficulty() {
     this.spawnTimer.delay = Math.max(SPAWN_DELAY_FLOOR_MS, this.spawnTimer.delay - SPAWN_RAMP_STEP_MS);
     this.difficultyRampCount += 1;
@@ -782,6 +831,7 @@ export class StageScene extends Phaser.Scene {
     this.spawnBatchSize = Math.min(MAX_SPAWN_BATCH_SIZE, 1 + Math.floor(this.difficultyRampCount / 2));
   }
 
+  // 제한 시간이 다 되면 타이머를 정리하고, 정답률을 계산해 결과 화면으로 넘어간다.
   finishStage() {
     this.spawnTimer.remove();
     this.difficultyTimer.remove();

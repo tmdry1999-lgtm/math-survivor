@@ -4,6 +4,9 @@ import { addPanelShadow } from '../ui/panelStyle.js';
 
 const TEXT_FONT = 'sans-serif';
 
+// 게임을 켜면 가장 먼저 보이는 제목 화면입니다.
+// 게임 제목, 캐릭터, "시작하기" 버튼을 보여주고, 버튼을 누르면 배경음악을 켜면서
+// 단원을 고르는 "나의 방" 화면(HubScene)으로 이동합니다.
 export class TitleScene extends Phaser.Scene {
   constructor() {
     super('Title');
@@ -16,6 +19,7 @@ export class TitleScene extends Phaser.Scene {
     this.add.rectangle(width / 2, height / 2, width, height, 0x111122);
     this.add.tileSprite(width / 2, height / 2, width, height, 'floor').setAlpha(0.12);
 
+    // 화면 가운데 위쪽에 주인공 캐릭터를 3배 크게 표시한다.
     const hero = this.add.image(width / 2, height / 2 - 160, 'player').setScale(3);
     this.tweens.add({
       targets: hero,
@@ -50,6 +54,7 @@ export class TitleScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
+    // "시작하기" 버튼을 만든다 (그림자 → 버튼 배경 → 버튼 글씨 순서로 겹쳐 그린다).
     addPanelShadow(this, width / 2, height / 2 + 60, 220, 60, 5);
     const startButton = this.add
       .rectangle(width / 2, height / 2 + 60, 220, 60, 0x2b2b40)
@@ -68,6 +73,7 @@ export class TitleScene extends Phaser.Scene {
       ease: 'Sine.InOut',
     });
 
+    // 버튼을 클릭(또는 터치)하면 배경음악을 켜고 "나의 방" 화면으로 이동한다.
     startButton.on('pointerdown', () => {
       startBackgroundMusic();
       this.scene.start('Hub');
